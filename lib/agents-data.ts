@@ -50,7 +50,7 @@ export const agents: AIAgent[] = [
     shortDescription: "精准分析，打造专属IP定位",
     category: "boss",
     tags: ["IP", "定位", "人设"],
-    usageCount: 156800,
+    usageCount: 0,
     icon: "Target",
     capabilities: [
       "分析个人优势与资源",
@@ -131,7 +131,7 @@ export const agents: AIAgent[] = [
     shortDescription: "智能分析趋势，生成爆款短视频选题",
     category: "boss",
     tags: ["短视频", "选题", "流量"],
-    usageCount: 198500,
+    usageCount: 0,
     icon: "Video",
     capabilities: [
       "分析抖音/快手热门话题趋势",
@@ -193,7 +193,7 @@ export const agents: AIAgent[] = [
     shortDescription: "智能分析热门趋势，生成高潜力爆款选题",
     category: "boss",
     tags: ["选题", "爆款", "流量"],
-    usageCount: 228500,
+    usageCount: 0,
     icon: "Lightbulb",
     capabilities: [
       "分析平台热门话题趋势",
@@ -258,7 +258,7 @@ export const agents: AIAgent[] = [
     shortDescription: "一键生成高转化直播脚本",
     category: "boss",
     tags: ["直播", "脚本", "带货"],
-    usageCount: 145600,
+    usageCount: 0,
     icon: "Radio",
     capabilities: [
       "生成完整直播脚本",
@@ -331,7 +331,7 @@ export const agents: AIAgent[] = [
     shortDescription: "拆解头部博主，学习爆款方法论",
     category: "boss",
     tags: ["抖音", "账号分析", "对标"],
-    usageCount: 167800,
+    usageCount: 0,
     icon: "Search",
     capabilities: [
       "分析账号定位与人设",
@@ -385,7 +385,7 @@ export const agents: AIAgent[] = [
     shortDescription: "批量二改视频文案，高效生产原创内容",
     category: "boss",
     tags: ["二改", "去重", "批量"],
-    usageCount: 189600,
+    usageCount: 0,
     icon: "RefreshCw",
     capabilities: [
       "批量改写视频文案",
@@ -442,7 +442,7 @@ export const agents: AIAgent[] = [
     shortDescription: "数据驱动，优化小红书账号运营",
     category: "boss",
     tags: ["小红书", "数据分析", "运营"],
-    usageCount: 134500,
+    usageCount: 0,
     icon: "LineChart",
     capabilities: [
       "分析账号数据表现",
@@ -500,7 +500,7 @@ export const agents: AIAgent[] = [
     shortDescription: "专业发圈文案，提升朋友圈转化",
     category: "private",
     tags: ["朋友圈", "营销", "文案"],
-    usageCount: 178300,
+    usageCount: 0,
     icon: "Megaphone",
     capabilities: [
       "挖掘用户痛点与需求",
@@ -556,7 +556,7 @@ export const agents: AIAgent[] = [
     shortDescription: "一键二创发圈文案，告别重复内容",
     category: "private",
     tags: ["二创", "朋友圈", "改写"],
-    usageCount: 156800,
+    usageCount: 0,
     icon: "Edit",
     capabilities: [
       "智能改写保持原意",
@@ -613,7 +613,7 @@ export const agents: AIAgent[] = [
     shortDescription: "一条变多条，朋友圈内容倍增",
     category: "private",
     tags: ["分身", "批量", "朋友圈"],
-    usageCount: 123400,
+    usageCount: 0,
     icon: "Copy",
     capabilities: [
       "一键生成多条文案",
@@ -669,7 +669,7 @@ export const agents: AIAgent[] = [
     shortDescription: "一对一话术指导，提升私域成交率",
     category: "private",
     tags: ["话术", "成交", "销售"],
-    usageCount: 145600,
+    usageCount: 0,
     icon: "MessageSquare",
     capabilities: [
       "设计破冰话术",
@@ -721,7 +721,7 @@ export const agents: AIAgent[] = [
     shortDescription: "规划私域内容日历，运营更有节奏",
     category: "private",
     tags: ["内容规划", "日历", "私域"],
-    usageCount: 98700,
+    usageCount: 0,
     icon: "Calendar",
     capabilities: [
       "制定内容发布计划",
@@ -783,7 +783,7 @@ export const agents: AIAgent[] = [
     shortDescription: "人设视频二创，打造专属内容",
     category: "public",
     tags: ["人设", "二创", "短视频"],
-    usageCount: 178500,
+    usageCount: 0,
     icon: "UserCircle",
     capabilities: [
       "分析原视频人设特点",
@@ -836,7 +836,7 @@ export const agents: AIAgent[] = [
     shortDescription: "二创爆款视频，复制成功公式",
     category: "public",
     tags: ["爆款", "二创", "短视频"],
-    usageCount: 256800,
+    usageCount: 0,
     icon: "Flame",
     capabilities: [
       "分析爆款视频成功元素",
@@ -894,7 +894,7 @@ export const agents: AIAgent[] = [
     shortDescription: "引流品话术，快速成交爆单",
     category: "public",
     tags: ["直播", "引流品", "话术"],
-    usageCount: 134500,
+    usageCount: 0,
     icon: "ShoppingBag",
     capabilities: [
       "设计引流品讲解话术",
@@ -950,7 +950,7 @@ export const agents: AIAgent[] = [
     shortDescription: "追踪热点，快速借势创作",
     category: "public",
     tags: ["热点", "借势", "选题"],
-    usageCount: 167800,
+    usageCount: 0,
     icon: "TrendingUp",
     capabilities: [
       "分析当前热点话题",
@@ -1011,7 +1011,7 @@ export const agents: AIAgent[] = [
     shortDescription: "优化标题，提升点击率",
     category: "public",
     tags: ["标题", "点击率", "优化"],
-    usageCount: 198400,
+    usageCount: 0,
     icon: "Zap",
     capabilities: [
       "分析标题问题",
@@ -1074,7 +1074,7 @@ export const agents: AIAgent[] = [
     shortDescription: "分析爆款，输出跟拍脚本",
     category: "tools",
     tags: ["爆款", "跟拍", "脚本"],
-    usageCount: 289600,
+    usageCount: 0,
     icon: "Camera",
     capabilities: [
       "分析爆款视频结构",
@@ -1176,7 +1176,7 @@ export const agents: AIAgent[] = [
     shortDescription: "提取视频口播，转为文字文案",
     category: "tools",
     tags: ["视频", "转文案", "提取"],
-    usageCount: 456800,
+    usageCount: 0,
     icon: "FileVideo",
     capabilities: [
       "提取视频口播内容",
@@ -1235,7 +1235,7 @@ export const agents: AIAgent[] = [
     shortDescription: "多平台无水印视频下载",
     category: "tools",
     tags: ["下载", "无水印", "素材"],
-    usageCount: 678900,
+    usageCount: 0,
     icon: "Download",
     capabilities: [
       "支持抖音、快手等平台",
@@ -1262,7 +1262,7 @@ export const agents: AIAgent[] = [
     shortDescription: "专业提词器，口播更流畅",
     category: "tools",
     tags: ["提词器", "直播", "口播"],
-    usageCount: 234500,
+    usageCount: 0,
     icon: "ScrollText",
     capabilities: [
       "自定义滚动速度",
