@@ -4,9 +4,9 @@ import React from "react"
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { type AIAgent } from "@/lib/agents-data"
+import { type AIAgent, formatUsageCount } from "@/lib/agents-data"
 import {
   Lightbulb,
   Target,
@@ -97,35 +97,40 @@ export function AgentCard({ agent, compact = false }: AgentCardProps) {
   }
 
   return (
-    <Card className="group hover:shadow-lg hover:border-primary/30 transition-all duration-300 flex flex-col aspect-square">
-      <CardContent className="p-5 flex-1 flex flex-col justify-between">
-        <div className="flex flex-col items-center text-center gap-3">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-            <IconComponent className="w-7 h-7 text-primary" />
+    <Card className="group hover:shadow-lg hover:border-primary/30 transition-all duration-300 h-full flex flex-col">
+      <CardContent className="p-5 flex-1">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+            <IconComponent className="w-6 h-6 text-primary" />
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors leading-tight mb-1.5">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
               {agent.name}
             </h3>
-            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+            <p className="text-sm text-muted-foreground mt-1">
               {agent.shortDescription}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2 justify-center">
-            {agent.tags.slice(0, 3).map((tag) => (
-              <Badge key={tag} variant="secondary" className="text-xs px-2.5 py-0.5">
-                {tag}
-              </Badge>
-            ))}
-          </div>
         </div>
+        <div className="flex flex-wrap gap-2 mt-4">
+          {agent.tags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="text-xs">
+              {tag}
+            </Badge>
+          ))}
+        </div>
+        <div className="mt-3 text-xs text-muted-foreground">
+          {formatUsageCount(agent.usageCount)} 次使用
+        </div>
+      </CardContent>
+      <CardFooter className="px-5 pb-5 pt-0">
         <Link href={`/agent/${agent.id}`} className="w-full">
-          <Button className="w-full h-11 text-sm font-medium group/btn bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg">
+          <Button className="w-full group/btn bg-primary hover:bg-primary/90 text-primary-foreground">
             立即使用
             <ArrowRight className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
           </Button>
         </Link>
-      </CardContent>
+      </CardFooter>
     </Card>
   )
 }
