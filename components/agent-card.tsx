@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { type AIAgent, formatUsageCount } from "@/lib/agents-data"
+import { type AIAgent } from "@/lib/agents-data"
 import {
   Lightbulb,
   Target,
@@ -118,9 +118,6 @@ export function AgentCard({ agent, compact = false }: AgentCardProps) {
               {tag}
             </Badge>
           ))}
-        </div>
-        <div className="mt-3 text-xs text-muted-foreground">
-          {formatUsageCount(agent.usageCount)} 次使用
         </div>
       </CardContent>
       <CardFooter className="px-5 pb-5 pt-0">
