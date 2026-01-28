@@ -98,31 +98,31 @@ export function AgentCard({ agent, compact = false }: AgentCardProps) {
 
   return (
     <Card className="group hover:shadow-lg hover:border-primary/30 transition-all duration-300 flex flex-col aspect-square">
-      <CardContent className="p-4 flex-1 flex flex-col justify-between">
-        <div className="flex flex-col items-center text-center gap-2">
-          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-            <IconComponent className="w-6 h-6 text-primary" />
+      <CardContent className="p-5 flex-1 flex flex-col justify-between">
+        <div className="flex flex-col items-center text-center gap-3">
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+            <IconComponent className="w-7 h-7 text-primary" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors leading-tight">
+            <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors leading-tight mb-1.5">
               {agent.name}
             </h3>
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-tight">
+            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
               {agent.shortDescription}
             </p>
           </div>
-          <div className="flex flex-wrap gap-1.5 justify-center mt-1">
+          <div className="flex flex-wrap gap-2 justify-center">
             {agent.tags.slice(0, 3).map((tag) => (
-              <Badge key={tag} variant="secondary" className="text-xs px-2 py-0.5">
+              <Badge key={tag} variant="secondary" className="text-xs px-2.5 py-0.5">
                 {tag}
               </Badge>
             ))}
           </div>
         </div>
-        <Link href={`/agent/${agent.id}`} className="w-full mt-3">
-          <Button className="w-full h-10 text-sm font-medium group/btn bg-primary hover:bg-primary/90 text-primary-foreground">
+        <Link href={`/agent/${agent.id}`} className="w-full">
+          <Button className="w-full h-11 text-sm font-medium group/btn bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg">
             立即使用
-            <ArrowRight className="w-4 h-4 ml-1.5 group-hover/btn:translate-x-1 transition-transform" />
+            <ArrowRight className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
           </Button>
         </Link>
       </CardContent>
