@@ -1721,55 +1721,114 @@ function formatLiveScriptGeneratorPrompt(formData: Record<string, string | strin
   return prompt
 }
 
-// 格式化抖音博主账号拆解的表单数据
+// 抖音账号拆解专家提示词
+const DOUYIN_ACCOUNT_ANALYZER_PROMPT = `# Role: 抖音账号拆解专家
+## Profile:
+- Author: 朝阳
+- Version: 1.0
+- Language: 中文
+
+## Background:
+用户通过JavaScript爬虫获取了目标抖音博主的详细数据信息,但面对海量数据和专业术语,老板无法直观理解账号的核心价值。用户需要一个专家角色,能够透过数据看本质,将枯燥的信息转化为通俗易懂的商业逻辑,直接告诉老板这个账号是怎么火的、能不能抄、怎么抄、以及如何避免踩坑。
+
+## Goals:
+1. 深度剖析目标账号的"爆款基因",包括人设定位、选题逻辑、拍摄风格。
+2. 提炼出可复制的成功路径,为老板提供具体的执行建议。
+3. 识别账号的潜在风险和操作难点,帮助团队规避弯路。
+4. 语言风格必须通俗易懂(说人话),确保老板能秒懂。
+
+## Constrains:
+1. 必须使用大白话,禁止使用晦涩难懂的专业术语。
+2. 核心聚焦于"商业价值"和"可执行性",不要罗列无意义的数据。
+3. 输出排版必须整洁,严格禁止使用星号(*)符号,包括Markdown中的加粗和列表符(列表使用短横线 - )。
+4. 每一个分析点必须对应一个具体的行动建议。
+
+### Skills:
+1. 爆款内容逆向工程能力:能从视频表现反推脚本结构和情绪钩子。
+2. 商业变现逻辑分析:识别账号的变现路径(带货、广告、引流)。
+3. 运营策略拆解:分析更新频率、发布时间、粉丝互动模式。
+
+## Rules:
+1. 既然是给老板看,结论先行,先说价值,再说细节。
+2. 遇到数据分析时,直接转化为"这对我们意味着什么"。
+3. 绝对禁止在输出结果中出现任何星号(*)。
+
+## Workflow:
+1. 接收用户提供的账号数据或描述信息。
+2. 按照以下框架进行深度拆解:
+   - 账号定位一句话总结(他是谁,做给谁看,卖什么)。
+   - 爆款逻辑拆解(为什么火,也就是流量密码)。
+   - 复制实操指南(如果我们做,第一步做什么,核心抓手是什么)。
+   - 避坑指南(这类账号最容易死在哪里)。
+3. 输出最终报告。
+
+## Initialization:
+作为 <Role>, 严格遵守 <Rules>, 使用默认 <Language> 与用户对话。我将直接忽略欢迎语,当用户输入账号信息后,直接依据 <Workflow> 输出无星号(*)的纯净分析报告。`
+
+// 格式化抖音博主账号拆解的表单数据 - 云端兼容版本
 async function formatDouyinAccountAnalyzerPrompt(formData: Record<string, string | string[]>): Promise<string> {
   const url = formData.url as string
+  const JINA_API_KEY = process.env.JINA_API_KEY || 'jina_68c99415c6544f03bfa1f1bb34c0f9cfV8Vcit_rctuXAc5FUeI08UDH7qZF'
 
-  // 调用 FastAPI 后端（main.py）
   try {
-    const response = await fetch('http://localhost:8000/analyze', {
+    // 步骤1: 使用 Jina Reader 抓取内容
+    const jinaUrl = `https://r.jina.ai/${url}`
+    const jinaResponse = await fetch(jinaUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${JINA_API_KEY}`,
+        'X-Retain-Images': 'none'
+      }
+    })
+
+    if (!jinaResponse.ok) {
+      throw new Error(`Jina 内容抓取失败: ${jinaResponse.status}`)
+    }
+
+    const content = await jinaResponse.text()
+
+    // 截断内容以防止超长
+    const truncatedContent = content.length > 30000
+      ? content.substring(0, 30000) + '\n\n[文本过长,已自动截断]'
+      : content
+
+    // 步骤2: 使用 DeepSeek 进行分析
+    const deepseekResponse = await fetch(DEEPSEEK_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
       },
-      body: JSON.stringify({ url: url })
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          {
+            role: 'system',
+            content: DOUYIN_ACCOUNT_ANALYZER_PROMPT
+          },
+          {
+            role: 'user',
+            content: `请分析以下抖音账号数据:\n\n${truncatedContent}`
+          }
+        ],
+        temperature: 1.3,
+        max_tokens: 4000
+      })
     })
 
-    if (!response.ok) {
-      throw new Error(`FastAPI 调用失败: ${response.status}`)
+    if (!deepseekResponse.ok) {
+      const errorData = await deepseekResponse.json()
+      console.error('DeepSeek API Error:', errorData)
+      throw new Error('DeepSeek API 调用失败')
     }
 
-    // 读取流式响应
-    const reader = response.body?.getReader()
-    const decoder = new TextDecoder()
-    let result = ''
-
-    if (reader) {
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n\n')
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.substring(6)
-            if (data === '[DONE]') {
-              continue
-            }
-            if (data.startsWith('[ERROR]')) {
-              throw new Error(data.substring(8))
-            }
-            result += data
-          }
-        }
-      }
-    }
+    const data = await deepseekResponse.json()
+    const result = data.choices[0]?.message?.content || '生成失败，请重试'
 
     return result
+
   } catch (error) {
-    console.error('FastAPI 调用错误:', error)
+    console.error('抖音账号分析错误:', error)
     throw new Error(`抖音账号分析失败: ${error instanceof Error ? error.message : '未知错误'}`)
   }
 }
