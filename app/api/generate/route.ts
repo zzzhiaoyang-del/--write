@@ -1722,32 +1722,56 @@ function formatLiveScriptGeneratorPrompt(formData: Record<string, string | strin
 }
 
 // 格式化抖音博主账号拆解的表单数据
-function formatDouyinAccountAnalyzerPrompt(formData: Record<string, string | string[]>): string {
-  const accountName = formData['account-name'] as string
-  const accountNiche = formData['account-niche'] as string
-  const focusAreas = formData['focus-areas'] as string[]
-  const purpose = formData.purpose as string
+async function formatDouyinAccountAnalyzerPrompt(formData: Record<string, string | string[]>): Promise<string> {
+  const url = formData.url as string
 
-  // 格式化分析维度
-  const focusAreasText = Array.isArray(focusAreas) && focusAreas.length > 0
-    ? focusAreas.map(f => focusAreasMap[f] || f).join('、')
-    : '全面分析'
+  // 调用 FastAPI 后端（main.py）
+  try {
+    const response = await fetch('http://localhost:8000/analyze', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url: url })
+    })
 
-  // 格式化分析目的
-  const purposeText = purposeMap[purpose] || purpose || '学习借鉴'
+    if (!response.ok) {
+      throw new Error(`FastAPI 调用失败: ${response.status}`)
+    }
 
-  let prompt = `请为我拆解分析以下抖音账号。\n\n`
-  prompt += `【分析目标】\n`
-  prompt += `- 账号名称/链接：${accountName}\n`
-  prompt += `- 账号领域：${accountNiche}\n\n`
+    // 读取流式响应
+    const reader = response.body?.getReader()
+    const decoder = new TextDecoder()
+    let result = ''
 
-  prompt += `【分析要求】\n`
-  prompt += `- 重点分析维度：${focusAreasText}\n`
-  prompt += `- 分析目的：${purposeText}\n`
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
 
-  prompt += `\n请严格按照你的工作流程，为我生成专业的账号拆解分析报告。`
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n\n')
 
-  return prompt
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.substring(6)
+            if (data === '[DONE]') {
+              continue
+            }
+            if (data.startsWith('[ERROR]')) {
+              throw new Error(data.substring(8))
+            }
+            result += data
+          }
+        }
+      }
+    }
+
+    return result
+  } catch (error) {
+    console.error('FastAPI 调用错误:', error)
+    throw new Error(`抖音账号分析失败: ${error instanceof Error ? error.message : '未知错误'}`)
+  }
 }
 
 // 格式化短视频批量二改助手的表单数据
@@ -2262,6 +2286,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { formData, agentId } = body
 
+    // 抖音账号拆解使用 FastAPI 后端
+    if (agentId === 'douyin-account-analyzer') {
+      try {
+        const result = await formatDouyinAccountAnalyzerPrompt(formData)
+        return NextResponse.json({ result })
+      } catch (error) {
+        return NextResponse.json(
+          { error: error instanceof Error ? error.message : '分析失败' },
+          { status: 500 }
+        )
+      }
+    }
+
     // 检查是否支持该 AI 员工
     if (!SYSTEM_PROMPTS[agentId]) {
       return NextResponse.json(
@@ -2284,9 +2321,6 @@ export async function POST(request: NextRequest) {
         break
       case 'live-script-generator':
         userPrompt = formatLiveScriptGeneratorPrompt(formData)
-        break
-      case 'douyin-account-analyzer':
-        userPrompt = formatDouyinAccountAnalyzerPrompt(formData)
         break
       case 'video-batch-rewrite':
         userPrompt = formatVideoBatchRewritePrompt(formData)

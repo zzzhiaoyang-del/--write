@@ -352,28 +352,11 @@ export const agents: AIAgent[] = [
     useFormMode: true,
     formSteps: [
       {
-        id: "account-to-analyze",
-        title: "分析目标",
+        id: "douyin-url",
+        title: "输入链接",
+        description: "输入抖音博主主页或视频链接，AI将自动抓取并分析",
         fields: [
-          { id: "account-name", label: "账号名称/链接", type: "text", placeholder: "输入抖音账号名称或主页链接", required: true },
-          { id: "account-niche", label: "账号领域", type: "text", placeholder: "如：美食、知识、搞笑...", required: true }
-        ]
-      },
-      {
-        id: "analysis-focus",
-        title: "分析重点",
-        fields: [
-          { id: "focus-areas", label: "重点分析维度", type: "checkbox", options: [
-            { value: "positioning", label: "账号定位" },
-            { value: "content", label: "内容策略" },
-            { value: "growth", label: "涨粉路径" },
-            { value: "monetization", label: "变现模式" }
-          ], required: true },
-          { id: "purpose", label: "分析目的", type: "radio", options: [
-            { value: "learn", label: "学习借鉴" },
-            { value: "compete", label: "竞品分析" },
-            { value: "cooperate", label: "合作评估" }
-          ] }
+          { id: "url", label: "抖音链接", type: "text", placeholder: "粘贴抖音博主主页链接或视频链接...", required: true, description: "支持抖音博主主页、视频详情页等链接" }
         ]
       }
     ]
