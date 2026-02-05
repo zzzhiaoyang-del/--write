@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Menu, X, Sparkles, User, LogOut } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { GoogleSignInButton } from "@/components/auth/google-signin-button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +26,6 @@ const navLinks = [
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [user, setUser] = useState<SupabaseUser | null>(null)
-  const [showLoginDialog, setShowLoginDialog] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -132,32 +130,12 @@ export function Navbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <>
-                <Button
-                  onClick={() => setShowLoginDialog(true)}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  登录
-                </Button>
-
-                {showLoginDialog && (
-                  <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-32">
-                    <div className="bg-background rounded-lg p-6 w-full max-w-sm mx-4 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-semibold">登录</h2>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setShowLoginDialog(false)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <GoogleSignInButton />
-                    </div>
-                  </div>
-                )}
-              </>
+              <Button
+                onClick={() => window.location.href = '/api/auth/google'}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                登录
+              </Button>
             )}
 
             {/* Mobile Menu Button */}
