@@ -2,7 +2,7 @@
 
 import React from "react"
 
-import { useState, use } from "react"
+import { useState, use, useEffect } from "react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -44,6 +44,7 @@ import {
   FileVideo,
   Download,
   ScrollText,
+  Trash2,
 } from "lucide-react"
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -86,14 +87,117 @@ export default function AgentPage({ params }: AgentPageProps) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [result, setResult] = useState("")
   const [isFavorite, setIsFavorite] = useState(false)
-  const [history, setHistory] = useState<Array<{ id: number; formData: Record<string, string | string[]>; result: string; time: string }>>([])
-  const [selectedHistoryId, setSelectedHistoryId] = useState<number | null>(null)
+  const [history, setHistory] = useState<Array<{
+    id: string;
+    formData: Record<string, string | string[]>;
+    result: string;
+    time: string
+  }>>([])
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null)
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+  const [user, setUser] = useState<any>(null)
 
   if (!agent) {
     notFound()
   }
 
   const IconComponent = iconMap[agent.icon] || Bot
+
+  // 加载用户信息和历史记录
+  useEffect(() => {
+    loadUserAndHistory()
+  }, [agent.id])
+
+  const loadUserAndHistory = async () => {
+    try {
+      // 检查用户登录状态
+      const response = await fetch('/api/auth/session')
+      if (response.ok) {
+        const data = await response.json()
+        setUser(data.user)
+
+        // 如果用户已登录，加载历史记录
+        if (data.user) {
+          await loadHistory()
+        }
+      }
+    } catch (error) {
+      console.error('加载用户信息失败:', error)
+    }
+  }
+
+  const loadHistory = async () => {
+    setIsLoadingHistory(true)
+    try {
+      const response = await fetch(`/api/history?agentId=${agent.id}&limit=10`)
+      if (response.ok) {
+        const data = await response.json()
+        const formattedHistory = data.history.map((item: any) => ({
+          id: item.id,
+          formData: item.form_data,
+          result: item.result,
+          time: new Date(item.created_at).toLocaleString('zh-CN', {
+            month: 'numeric',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        }))
+        setHistory(formattedHistory)
+      }
+    } catch (error) {
+      console.error('加载历史记录失败:', error)
+    } finally {
+      setIsLoadingHistory(false)
+    }
+  }
+
+  const saveToHistory = async (formData: Record<string, string | string[]>, generatedResult: string) => {
+    if (!user) return
+
+    try {
+      const response = await fetch('/api/history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          agentId: agent.id,
+          formData,
+          result: generatedResult
+        })
+      })
+
+      if (response.ok) {
+        // 重新加载历史记录
+        await loadHistory()
+      }
+    } catch (error) {
+      console.error('保存历史记录失败:', error)
+    }
+  }
+
+  const deleteHistoryItem = async (historyId: string) => {
+    if (!user) return
+
+    try {
+      const response = await fetch(`/api/history?id=${historyId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        // 从状态中移除该项
+        setHistory(prev => prev.filter(item => item.id !== historyId))
+
+        // 如果删除的是当前选中的项，清空选中状态
+        if (selectedHistoryId === historyId) {
+          setSelectedHistoryId(null)
+        }
+      }
+    } catch (error) {
+      console.error('删除历史记录失败:', error)
+    }
+  }
 
   const handleGenerate = async (inputOrFormData?: string | Record<string, string | string[]>) => {
     const inputText = typeof inputOrFormData === 'string' ? inputOrFormData : input
@@ -125,20 +229,9 @@ export default function AgentPage({ params }: AgentPageProps) {
         const data = await response.json()
         setResult(data.result)
 
-        // 保存到历史记录
-        if (data.result) {
-          const newHistoryItem = {
-            id: Date.now(),
-            formData: inputOrFormData,
-            result: data.result,
-            time: new Date().toLocaleString('zh-CN', {
-              month: 'numeric',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })
-          }
-          setHistory(prev => [newHistoryItem, ...prev].slice(0, 10)) // 只保留最近10条
+        // 保存到历史记录（只有登录用户才保存）
+        if (data.result && user) {
+          await saveToHistory(inputOrFormData, data.result)
         }
       } else {
         // 其他情况使用模拟数据
@@ -367,25 +460,55 @@ export default function AgentPage({ params }: AgentPageProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {history.length > 0 ? (
+                {!user ? (
+                  <div className="text-center py-6">
+                    <Clock className="w-8 h-8 mx-auto text-muted-foreground/30 mb-2" />
+                    <p className="text-xs text-muted-foreground mb-2">登录后查看历史记录</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.location.href = '/api/auth/google'}
+                    >
+                      立即登录
+                    </Button>
+                  </div>
+                ) : isLoadingHistory ? (
+                  <div className="text-center py-6">
+                    <Loader2 className="w-6 h-6 mx-auto animate-spin text-muted-foreground mb-2" />
+                    <p className="text-xs text-muted-foreground">加载中...</p>
+                  </div>
+                ) : history.length > 0 ? (
                   <div className="space-y-2">
                     {history.map((item) => (
                       <div
                         key={item.id}
-                        className={`p-2.5 rounded-lg hover:bg-muted/70 cursor-pointer transition-colors border ${
+                        className={`p-2.5 rounded-lg hover:bg-muted/70 cursor-pointer transition-colors border group ${
                           selectedHistoryId === item.id ? 'border-primary bg-muted/50' : 'border-transparent'
                         }`}
                         onClick={() => loadHistoryItem(item)}
                       >
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <p className="text-xs font-medium text-foreground line-clamp-1">
+                          <p className="text-xs font-medium text-foreground line-clamp-1 flex-1">
                             {typeof item.formData === 'object' && 'niche' in item.formData
                               ? (item.formData.niche as string)
                               : '历史记录'}
                           </p>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            {item.time}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              {item.time}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                deleteHistoryItem(item.id)
+                              }}
+                            >
+                              <Trash2 className="w-3 h-3 text-destructive" />
+                            </Button>
+                          </div>
                         </div>
                         <p className="text-xs text-muted-foreground line-clamp-2">
                           {item.result.split('\n')[0]}
