@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,6 +11,8 @@ import { Progress } from "@/components/ui/progress"
 import { AgentCard } from "@/components/agent-card"
 import { agents } from "@/lib/agents-data"
 import { Footer } from "@/components/footer"
+import { createClient } from "@/lib/supabase/client"
+import type { User as SupabaseUser } from "@supabase/supabase-js"
 import {
   User,
   Settings,
@@ -26,20 +29,6 @@ import {
   Shield,
   CreditCard,
 } from "lucide-react"
-
-// Simulated user data
-const userData = {
-  name: "用户昵称",
-  email: "user@example.com",
-  avatar: "",
-  plan: "free",
-  planName: "免费版",
-  dailyUsed: 7,
-  dailyLimit: 10,
-  monthlyUsed: 156,
-  monthlyLimit: 300,
-  joinDate: "2024-01-15",
-}
 
 const favoriteIds = ["marketing-expert", "positioning-expert", "data-analyst"]
 
@@ -84,6 +73,81 @@ const settingsMenu = [
 ]
 
 export default function ProfilePage() {
+  const router = useRouter()
+  const supabase = createClient()
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // Mock user data (will be replaced with real data from database later)
+  const userData = {
+    plan: "free",
+    planName: "免费版",
+    dailyUsed: 7,
+    dailyLimit: 10,
+    monthlyUsed: 156,
+    monthlyLimit: 300,
+  }
+
+  useEffect(() => {
+    // Check authentication
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        // Redirect to home if not logged in
+        router.push('/')
+        return
+      }
+
+      setUser(session.user)
+      setLoading(false)
+    }
+
+    checkUser()
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        router.push('/')
+      } else {
+        setUser(session.user)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase.auth, router])
+
+  const handleSignOut = async () => {
+    await fetch('/api/auth/signout', { method: 'POST' })
+    router.push('/')
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+          <p className="mt-4 text-muted-foreground">加载中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
+
+  // Format join date
+  const joinDate = user.created_at
+    ? new Date(user.created_at).toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      })
+    : '未知'
+
   const favoriteAgents = agents.filter((a) => favoriteIds.includes(a.id))
 
   return (
@@ -93,15 +157,15 @@ export default function ProfilePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
             <Avatar className="w-20 h-20">
-              <AvatarImage src={userData.avatar || "/placeholder.svg"} />
+              <AvatarImage src={user.user_metadata?.avatar_url || "/placeholder.svg"} />
               <AvatarFallback className="bg-primary/10 text-primary text-2xl">
-                {userData.name.slice(0, 1)}
+                {user.user_metadata?.full_name?.slice(0, 1) || user.email?.slice(0, 1).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-2xl font-bold text-foreground">
-                  {userData.name}
+                  {user.user_metadata?.full_name || user.email?.split('@')[0]}
                 </h1>
                 <Badge
                   variant="secondary"
@@ -111,9 +175,9 @@ export default function ProfilePage() {
                   {userData.planName}
                 </Badge>
               </div>
-              <p className="text-muted-foreground mt-1">{userData.email}</p>
+              <p className="text-muted-foreground mt-1">{user.email}</p>
               <p className="text-sm text-muted-foreground mt-2">
-                加入时间：{userData.joinDate}
+                加入时间：{joinDate}
               </p>
             </div>
             <div className="flex gap-3">
@@ -324,6 +388,7 @@ export default function ProfilePage() {
             <Button
               variant="outline"
               className="w-full text-muted-foreground hover:text-destructive hover:border-destructive bg-transparent"
+              onClick={handleSignOut}
             >
               <LogOut className="w-4 h-4 mr-2" />
               退出登录
