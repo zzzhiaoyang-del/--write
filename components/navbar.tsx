@@ -141,7 +141,7 @@ export function Navbar() {
                 </Button>
 
                 {showLoginDialog && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                  <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-32">
                     <div className="bg-background rounded-lg p-6 w-full max-w-sm mx-4 space-y-4">
                       <div className="flex items-center justify-between">
                         <h2 className="text-xl font-semibold">登录</h2>
