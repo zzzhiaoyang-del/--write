@@ -19,6 +19,7 @@ import type { User as SupabaseUser } from "@supabase/supabase-js"
 const navLinks = [
   { href: "/", label: "首页" },
   { href: "/marketplace", label: "智能广场" },
+  { href: "/digital-assets", label: "数字资产" },
   { href: "/my-agents", label: "AI员工" },
   { href: "/pricing", label: "定价" },
 ]
