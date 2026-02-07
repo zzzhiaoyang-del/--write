@@ -49,11 +49,11 @@ export async function POST(request: NextRequest) {
     //   }),
     // })
 
-    // 临时模拟返回（用于测试UI流程）
+    // 🚀 MVP模式：模拟数字人创建（不调用真实API，快速测试）
     const avatarId = `avatar_${Date.now()}`
 
     // 保存到数据库
-    const { error: dbError } = await supabase
+    const { data: insertedData, error: dbError } = await supabase
       .from('digital_humans')
       .insert({
         user_id: user.id,
@@ -64,6 +64,23 @@ export async function POST(request: NextRequest) {
         status: 'processing', // processing, completed, failed
         created_at: new Date().toISOString(),
       })
+      .select()
+      .single()
+
+    if (dbError) {
+      console.error('Database error:', dbError)
+      return NextResponse.json({ error: '保存失败' }, { status: 500 })
+    }
+
+    // 🎯 MVP模式：3秒后自动标记为"已完成"（模拟真实处理）
+    // 生产环境应该通过webhook回调更新状态
+    setTimeout(async () => {
+      const supabaseUpdate = await createClient()
+      await supabaseUpdate
+        .from('digital_humans')
+        .update({ status: 'completed' })
+        .eq('id', insertedData.id)
+    }, 3000)
 
     if (dbError) {
       console.error('Database error:', dbError)
@@ -73,7 +90,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       avatarId,
-      message: '数字人创建中，预计需要5-10分钟',
+      message: '🎉 数字人创建成功！（MVP模式：模拟数据，3秒后自动完成）',
     })
 
   } catch (error) {
