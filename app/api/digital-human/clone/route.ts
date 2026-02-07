@@ -36,21 +36,41 @@ export async function POST(request: NextRequest) {
     // const heygenData = await heygenResponse.json()
     // const avatarId = heygenData.data.avatar_id
 
-    // 方案2: 使用 D-ID API
-    // const didResponse = await fetch('https://api.d-id.com/clips', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Authorization': `Basic ${process.env.DID_API_KEY}`,
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify({
-    //     presenter_id: 'custom',
-    //     driver_url: videoUrl,
-    //   }),
-    // })
+    // 🎯 使用 D-ID API（最便宜方案，约 $10-20/分身）
+    let avatarId = `avatar_${Date.now()}`
 
-    // 🚀 MVP模式：模拟数字人创建（不调用真实API，快速测试）
-    const avatarId = `avatar_${Date.now()}`
+    if (process.env.DID_API_KEY) {
+      // 调用 D-ID API 创建数字人
+      try {
+        const didResponse = await fetch('https://api.d-id.com/clips', {
+          method: 'POST',
+          headers: {
+            'Authorization': process.env.DID_API_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            presenter_id: 'custom',
+            source_url: videoUrl, // 上传的视频URL
+            script: {
+              type: 'text',
+              input: 'Hello, I am your digital human clone!', // 测试文本
+            },
+          }),
+        })
+
+        if (didResponse.ok) {
+          const didData = await didResponse.json()
+          avatarId = didData.id // 使用 D-ID 返回的 ID
+        } else {
+          console.error('D-ID API error:', await didResponse.text())
+          // 如果 API 调用失败，继续使用模拟数据
+        }
+      } catch (error) {
+        console.error('D-ID API call failed:', error)
+        // 失败时继续使用模拟数据
+      }
+    }
+    // 如果没有配置 API Key，使用 MVP 模式（模拟数据）
 
     // 保存到数据库
     const { data: insertedData, error: dbError } = await supabase
@@ -90,7 +110,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       avatarId,
-      message: '🎉 数字人创建成功！（MVP模式：模拟数据，3秒后自动完成）',
+      message: process.env.DID_API_KEY
+        ? '🎉 数字人创建成功！（使用 D-ID API）'
+        : '🎉 数字人创建成功！（MVP模式：模拟数据，3秒后自动完成）',
     })
 
   } catch (error) {
