@@ -1,18 +1,21 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, HttpUrl
-import requests
+from pydantic import BaseModel
+from playwright.async_api import async_playwright, Browser, Page
+from playwright_stealth import stealth_async
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
 import asyncio
 from typing import AsyncGenerator
+import json
+import re
 
 # 加载环境变量
 load_dotenv()
 
-app = FastAPI(title="抖音账号拆解 API")
+app = FastAPI(title="抖音账号拆解 API (Playwright 版)")
 
 # 配置 CORS
 app.add_middleware(
@@ -24,12 +27,9 @@ app.add_middleware(
 )
 
 # 环境变量
-JINA_API_KEY = os.getenv("JINA_API_KEY")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 # 验证环境变量
-if not JINA_API_KEY:
-    raise ValueError("JINA_API_KEY 未在环境变量中设置")
 if not DEEPSEEK_API_KEY:
     raise ValueError("DEEPSEEK_API_KEY 未在环境变量中设置")
 
@@ -38,6 +38,9 @@ deepseek_client = OpenAI(
     api_key=DEEPSEEK_API_KEY,
     base_url="https://api.deepseek.com"
 )
+
+# 移动端 User-Agent (模拟 iPhone)
+MOBILE_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
 
 # 系统提示词
 SYSTEM_PROMPT = """# Role: 抖音账号拆解专家
@@ -88,25 +91,175 @@ class AnalyzeRequest(BaseModel):
     url: str
 
 
-def fetch_content_from_jina(target_url: str) -> str:
+async def fetch_douyin_content_with_playwright(target_url: str, headless: bool = True) -> str:
     """
-    使用 Jina Reader 抓取目标 URL 的内容
-    """
-    jina_url = f"https://r.jina.ai/{target_url}"
-    headers = {
-        "Authorization": f"Bearer {JINA_API_KEY}",
-        "X-Retain-Images": "none"  # 只抓取文本,不要图片
-    }
+    使用 Playwright 抓取抖音页面内容
 
-    try:
-        response = requests.get(jina_url, headers=headers, timeout=30)
-        response.raise_for_status()
-        return response.text
-    except requests.exceptions.RequestException as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Jina 内容抓取失败: {str(e)}"
+    参数:
+    - target_url: 目标 URL
+    - headless: 是否无头模式 (调试时可设为 False)
+
+    返回:
+    - Markdown 格式的页面数据
+    """
+    async with async_playwright() as p:
+        # 启动浏览器 (Chromium + 隐身模式)
+        browser = await p.chromium.launch(
+            headless=headless,
+            args=[
+                '--disable-blink-features=AutomationControlled',
+                '--no-sandbox',
+                '--disable-setuid-sandbox'
+            ]
         )
+
+        # 创建上下文 (移动端视口 + User-Agent)
+        context = await browser.new_context(
+            user_agent=MOBILE_USER_AGENT,
+            viewport={'width': 375, 'height': 812},
+            device_scale_factor=2
+        )
+
+        page = await context.new_page()
+
+        # 应用反检测 (playwright-stealth)
+        await stealth_async(page)
+
+        try:
+            # 访问目标页面
+            await page.goto(target_url, wait_until='networkidle', timeout=30000)
+
+            # 等待页面加载
+            await asyncio.sleep(3)
+
+            # 提取数据
+            markdown_content = "# 抖音账号数据\n\n"
+
+            # 1. 尝试提取 RENDER_DATA (抖音服务端渲染数据)
+            try:
+                render_data_element = await page.query_selector('script#RENDER_DATA')
+                if render_data_element:
+                    render_data_text = await render_data_element.inner_text()
+                    # 解析 JSON
+                    try:
+                        render_data = json.loads(render_data_text)
+                        markdown_content += "## RENDER_DATA (服务端数据)\n\n"
+                        markdown_content += f"```json\n{json.dumps(render_data, ensure_ascii=False, indent=2)}\n```\n\n"
+                    except json.JSONDecodeError:
+                        markdown_content += f"## RENDER_DATA (原始)\n\n```\n{render_data_text[:2000]}\n```\n\n"
+            except Exception as e:
+                markdown_content += f"## RENDER_DATA 提取失败\n\n错误: {str(e)}\n\n"
+
+            # 2. 提取昵称
+            nickname = "未知"
+            try:
+                # 多种选择器尝试
+                nickname_selectors = [
+                    'h1.account-name',
+                    '[class*="nickname"]',
+                    '[class*="user-name"]',
+                    'h1',
+                    '.user-info .name'
+                ]
+                for selector in nickname_selectors:
+                    element = await page.query_selector(selector)
+                    if element:
+                        nickname = await element.inner_text()
+                        break
+            except Exception:
+                pass
+
+            markdown_content += f"## 昵称\n\n{nickname}\n\n"
+
+            # 3. 提取简介/个性签名
+            bio = "未提取到简介"
+            try:
+                bio_selectors = [
+                    '[class*="bio"]',
+                    '[class*="signature"]',
+                    '[class*="description"]',
+                    '.user-desc'
+                ]
+                for selector in bio_selectors:
+                    element = await page.query_selector(selector)
+                    if element:
+                        bio = await element.inner_text()
+                        break
+            except Exception:
+                pass
+
+            markdown_content += f"## 简介\n\n{bio}\n\n"
+
+            # 4. 提取统计数据 (粉丝数、点赞数等)
+            stats = {}
+            try:
+                stats_selectors = [
+                    '[class*="stats"]',
+                    '[class*="count"]',
+                    '.user-data',
+                    '.count-info'
+                ]
+                for selector in stats_selectors:
+                    elements = await page.query_selector_all(selector)
+                    for element in elements:
+                        text = await element.inner_text()
+                        # 提取数字和标签
+                        if text:
+                            stats[selector] = text
+            except Exception:
+                pass
+
+            if stats:
+                markdown_content += "## 统计数据\n\n"
+                for key, value in stats.items():
+                    markdown_content += f"- {key}: {value}\n"
+                markdown_content += "\n"
+
+            # 5. 提取最近视频标题 (最多 10 个)
+            video_titles = []
+            try:
+                video_selectors = [
+                    '[class*="video-title"]',
+                    '[class*="aweme"] [class*="title"]',
+                    '.video-list .title',
+                    'a[class*="title"]'
+                ]
+                for selector in video_selectors:
+                    elements = await page.query_selector_all(selector)
+                    if elements:
+                        for element in elements[:10]:
+                            title = await element.inner_text()
+                            if title.strip():
+                                video_titles.append(title.strip())
+                        if video_titles:
+                            break
+            except Exception:
+                pass
+
+            if video_titles:
+                markdown_content += "## 最近视频标题\n\n"
+                for i, title in enumerate(video_titles, 1):
+                    markdown_content += f"{i}. {title}\n"
+                markdown_content += "\n"
+
+            # 6. 获取页面完整 HTML (备用)
+            page_html = await page.content()
+
+            # 提取页面文本内容 (作为补充)
+            page_text = await page.evaluate('() => document.body.innerText')
+
+            markdown_content += "## 页面文本内容 (前 5000 字符)\n\n"
+            markdown_content += page_text[:5000] + "\n\n"
+
+            return markdown_content
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Playwright 抓取失败: {str(e)}"
+            )
+        finally:
+            await browser.close()
 
 
 def truncate_text(text: str, max_length: int = 30000) -> str:
@@ -157,8 +310,8 @@ async def root():
     """
     return {
         "status": "ok",
-        "message": "抖音账号拆解 API 正常运行",
-        "version": "1.0"
+        "message": "抖音账号拆解 API 正常运行 (Playwright 版本)",
+        "version": "2.0"
     }
 
 
@@ -169,16 +322,16 @@ async def analyze_douyin_account(request: AnalyzeRequest):
 
     流程:
     1. 接收用户提供的 URL
-    2. 使用 Jina Reader 抓取内容
+    2. 使用 Playwright 抓取内容
     3. 使用 DeepSeek 进行 AI 分析
     4. 流式返回分析结果
     """
     if not request.url:
         raise HTTPException(status_code=400, detail="URL 不能为空")
 
-    # 步骤 1: 抓取内容
+    # 步骤 1: 抓取内容 (使用 Playwright)
     try:
-        content = fetch_content_from_jina(request.url)
+        content = await fetch_douyin_content_with_playwright(request.url, headless=True)
     except HTTPException as e:
         raise e
     except Exception as e:
