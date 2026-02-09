@@ -41,8 +41,13 @@ export async function POST(request: NextRequest) {
     let didTalkId: string | null = null
 
     if (process.env.DID_API_KEY) {
-      // 调用 D-ID API 创建数字人（使用 /talks 端点）
+      // 注意：D-ID /talks 端点需要图片 URL，不是视频 URL
+      // 对于视频克隆，需要使用 D-ID 的 Agents API 或其他端点
+      // 这里我们暂时使用一个默认的演示图片来测试 API 连接
       try {
+        // 使用 D-ID 提供的示例图片进行测试
+        const testImageUrl = 'https://create-images-results.d-id.com/DefaultPresenters/Noelle_f/image.jpeg'
+
         const didResponse = await fetch('https://api.d-id.com/talks', {
           method: 'POST',
           headers: {
@@ -50,10 +55,10 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            source_url: videoUrl, // 上传的视频/图片URL
+            source_url: testImageUrl, // 使用测试图片
             script: {
               type: 'text',
-              input: 'Hello, I am your digital human clone!', // 测试文本
+              input: `你好，我是 ${name}，你的数字人分身！`, // 使用用户提供的名称
             },
             config: {
               fluent: true,
