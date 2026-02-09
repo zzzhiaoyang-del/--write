@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Upload, Video, AlertCircle, CheckCircle2, X, Info } from 'lucide-react'
+import { Upload, AlertCircle, CheckCircle2, X, Info } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Dialog,
@@ -16,44 +16,44 @@ import {
 } from '@/components/ui/dialog'
 
 export default function CloneAvatarPage() {
-  const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [name, setName] = useState('')
   const [category, setCategory] = useState('')
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState<string>('')
   const [showTutorial, setShowTutorial] = useState(false)
 
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // 验证视频大小和格式
-      if (file.size > 500 * 1024 * 1024) { // 500MB
-        alert('视频大小不能超过500MB')
+      // 验证图片大小和格式
+      if (file.size > 10 * 1024 * 1024) { // 10MB
+        alert('图片大小不能超过10MB')
         return
       }
-      if (!file.type.startsWith('video/')) {
-        alert('请上传视频文件')
+      if (!file.type.startsWith('image/')) {
+        alert('请上传图片文件（JPG、PNG 等）')
         return
       }
-      setVideoFile(file)
+      setImageFile(file)
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!videoFile || !name || !category) {
+    if (!imageFile || !name || !category) {
       alert('请填写所有必填项')
       return
     }
 
     setUploading(true)
-    setProgress('正在上传视频...')
+    setProgress('正在上传图片...')
 
     try {
-      // 1. 上传视频到服务器/云存储
+      // 1. 上传图片到服务器/云存储
       const formData = new FormData()
-      formData.append('video', videoFile)
+      formData.append('image', imageFile)
       formData.append('name', name)
       formData.append('category', category)
 
@@ -62,17 +62,17 @@ export default function CloneAvatarPage() {
         body: formData,
       })
 
-      if (!uploadResponse.ok) throw new Error('视频上传失败')
+      if (!uploadResponse.ok) throw new Error('图片上传失败')
 
-      const { videoUrl } = await uploadResponse.json()
-      setProgress('视频上传成功，正在创建数字分身...')
+      const { imageUrl } = await uploadResponse.json()
+      setProgress('图片上传成功，正在创建数字分身...')
 
       // 2. 调用数字人克隆API
       const cloneResponse = await fetch('/api/digital-human/clone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          videoUrl,
+          imageUrl,
           name,
           category,
         }),
@@ -105,10 +105,7 @@ export default function CloneAvatarPage() {
             克隆形象
           </h1>
           <p className="text-lg text-muted-foreground mb-4">
-            捕捉你的微表情，打造数字分身
-          </p>
-          <p className="text-sm text-muted-foreground">
-            上传视频→AI捕捉面部特征/表情→生成可驱动的AI数字人
+            上传图片，创建您的数字人分身
           </p>
           <Button
             variant="outline"
@@ -135,22 +132,22 @@ export default function CloneAvatarPage() {
             <CardContent>
               <div className="space-y-4">
                 <div className="border-2 border-dashed rounded-lg p-8 text-center bg-muted/20 hover:bg-muted/30 transition-colors">
-                  {videoFile ? (
+                  {imageFile ? (
                     <div className="space-y-3">
                       <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                        <Video className="w-8 h-8 text-primary" />
+                        <Upload className="w-8 h-8 text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{videoFile.name}</p>
+                        <p className="text-sm font-medium">{imageFile.name}</p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {(videoFile.size / (1024 * 1024)).toFixed(2)} MB
+                          {(imageFile.size / (1024 * 1024)).toFixed(2)} MB
                         </p>
                       </div>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => setVideoFile(null)}
+                        onClick={() => setImageFile(null)}
                       >
                         重新选择
                       </Button>
@@ -161,11 +158,11 @@ export default function CloneAvatarPage() {
                         <Upload className="w-8 h-8 text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium mb-2">上传视频</p>
+                        <p className="text-sm font-medium mb-2">上传图片</p>
                         <Input
                           type="file"
-                          accept="video/*"
-                          onChange={handleVideoUpload}
+                          accept="image/*"
+                          onChange={handleImageUpload}
                           className="max-w-xs mx-auto cursor-pointer"
                         />
                       </div>
@@ -176,10 +173,10 @@ export default function CloneAvatarPage() {
                 <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
                   <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   <AlertDescription className="text-xs space-y-1 text-blue-900 dark:text-blue-100">
-                    <p>• 视频长度1分钟-4分钟，超出则取前4分钟</p>
-                    <p>• 建议选择大小在500MB以内的视频，上传更快</p>
-                    <p>• 单人出镜，没有出现遮挡，没有出现侧脸</p>
-                    <p>• 保持人物一直在画面中</p>
+                    <p>• 支持 JPG、PNG、JPEG 等常见图片格式</p>
+                    <p>• 建议图片大小在 10MB 以内</p>
+                    <p>• 建议使用清晰的正面照片，单人出镜</p>
+                    <p>• 图片将用于生成会说话的数字人</p>
                   </AlertDescription>
                 </Alert>
               </div>
@@ -246,7 +243,7 @@ export default function CloneAvatarPage() {
             type="submit"
             className="w-full h-14 text-base font-semibold"
             size="lg"
-            disabled={uploading || !videoFile || !name || !category}
+            disabled={uploading || !imageFile || !name || !category}
           >
             {uploading ? progress : '提交'}
           </Button>
@@ -268,15 +265,15 @@ export default function CloneAvatarPage() {
       <Dialog open={showTutorial} onOpenChange={setShowTutorial}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">数字人克隆教程</DialogTitle>
+            <DialogTitle className="text-xl font-bold">数字人图片要求</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Video className="w-4 h-4 text-primary" />
+                <Upload className="w-4 h-4 text-primary" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium">拍摄上传 10s-5min 的视频</p>
+                <p className="text-sm font-medium">上传清晰的正面照片</p>
               </div>
               <CheckCircle2 className="w-5 h-5 text-primary" />
             </div>
@@ -286,7 +283,7 @@ export default function CloneAvatarPage() {
                 <CheckCircle2 className="w-4 h-4 text-primary" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium">没有拍任意遮挡</p>
+                <p className="text-sm font-medium">单人出镜，无遮挡</p>
               </div>
               <CheckCircle2 className="w-5 h-5 text-primary" />
             </div>
@@ -296,7 +293,7 @@ export default function CloneAvatarPage() {
                 <CheckCircle2 className="w-4 h-4 text-primary" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium">没有问脸</p>
+                <p className="text-sm font-medium">图片大小在 10MB 以内</p>
               </div>
               <CheckCircle2 className="w-5 h-5 text-primary" />
             </div>
@@ -306,17 +303,7 @@ export default function CloneAvatarPage() {
                 <CheckCircle2 className="w-4 h-4 text-primary" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium">没有多人出现在画面</p>
-              </div>
-              <CheckCircle2 className="w-5 h-5 text-primary" />
-            </div>
-
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <CheckCircle2 className="w-4 h-4 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">保持人物一直在画面中</p>
+                <p className="text-sm font-medium">支持 JPG、PNG 等格式</p>
               </div>
               <CheckCircle2 className="w-5 h-5 text-primary" />
             </div>
@@ -334,12 +321,6 @@ export default function CloneAvatarPage() {
                   <div className="aspect-square rounded-lg bg-muted mb-2 flex items-center justify-center">
                     <X className="w-8 h-8 text-destructive" />
                   </div>
-                  <p className="text-xs text-muted-foreground">人脸出框</p>
-                </div>
-                <div className="text-center">
-                  <div className="aspect-square rounded-lg bg-muted mb-2 flex items-center justify-center">
-                    <X className="w-8 h-8 text-destructive" />
-                  </div>
                   <p className="text-xs text-muted-foreground">侧脸拍摄</p>
                 </div>
                 <div className="text-center">
@@ -347,6 +328,12 @@ export default function CloneAvatarPage() {
                     <X className="w-8 h-8 text-destructive" />
                   </div>
                   <p className="text-xs text-muted-foreground">多人出镜</p>
+                </div>
+                <div className="text-center">
+                  <div className="aspect-square rounded-lg bg-muted mb-2 flex items-center justify-center">
+                    <X className="w-8 h-8 text-destructive" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">图片模糊</p>
                 </div>
               </div>
             </div>
@@ -356,7 +343,7 @@ export default function CloneAvatarPage() {
             onClick={() => setShowTutorial(false)}
             className="w-full"
           >
-            上传视频
+            上传图片
           </Button>
         </DialogContent>
       </Dialog>
