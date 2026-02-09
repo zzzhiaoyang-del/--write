@@ -12,29 +12,34 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData()
-    const videoFile = formData.get('video') as File
+    const imageFile = formData.get('image') as File
     const name = formData.get('name') as string
     const category = formData.get('category') as string
 
-    if (!videoFile || !name || !category) {
+    if (!imageFile || !name || !category) {
       return NextResponse.json({ error: '缺少必要参数' }, { status: 400 })
     }
 
+    // 验证是否为图片文件
+    if (!imageFile.type.startsWith('image/')) {
+      return NextResponse.json({ error: '只支持图片文件' }, { status: 400 })
+    }
+
     // 生成唯一文件名
-    const fileExt = videoFile.name.split('.').pop()
+    const fileExt = imageFile.name.split('.').pop()
     const fileName = `${user.id}/${Date.now()}.${fileExt}`
 
     // 上传到 Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('digital-human-videos')
-      .upload(fileName, videoFile, {
-        contentType: videoFile.type,
+      .upload(fileName, imageFile, {
+        contentType: imageFile.type,
         cacheControl: '3600',
       })
 
     if (uploadError) {
       console.error('Upload error:', uploadError)
-      return NextResponse.json({ error: '视频上传失败' }, { status: 500 })
+      return NextResponse.json({ error: '图片上传失败' }, { status: 500 })
     }
 
     // 获取公开URL
@@ -43,7 +48,7 @@ export async function POST(request: NextRequest) {
       .getPublicUrl(fileName)
 
     return NextResponse.json({
-      videoUrl: publicUrl,
+      imageUrl: publicUrl,
       fileName,
     })
 

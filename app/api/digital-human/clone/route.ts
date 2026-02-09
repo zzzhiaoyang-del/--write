@@ -14,9 +14,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '未登录' }, { status: 401 })
     }
 
-    const { videoUrl, name, category } = await request.json()
+    const { imageUrl, name, category } = await request.json()
 
-    if (!videoUrl || !name) {
+    if (!imageUrl || !name) {
       return NextResponse.json({ error: '缺少必要参数' }, { status: 400 })
     }
 
@@ -41,13 +41,8 @@ export async function POST(request: NextRequest) {
     let didTalkId: string | null = null
 
     if (process.env.DID_API_KEY) {
-      // 注意：D-ID /talks 端点需要图片 URL，不是视频 URL
-      // 对于视频克隆，需要使用 D-ID 的 Agents API 或其他端点
-      // 这里我们暂时使用一个默认的演示图片来测试 API 连接
+      // 使用用户上传的图片 URL
       try {
-        // 使用 D-ID 提供的示例图片进行测试
-        const testImageUrl = 'https://create-images-results.d-id.com/DefaultPresenters/Noelle_f/image.jpeg'
-
         const didResponse = await fetch('https://api.d-id.com/talks', {
           method: 'POST',
           headers: {
@@ -55,7 +50,7 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            source_url: testImageUrl, // 使用测试图片
+            source_url: imageUrl, // 使用用户上传的图片
             script: {
               type: 'text',
               input: `你好，我是 ${name}，你的数字人分身！`, // 使用用户提供的名称
@@ -96,7 +91,7 @@ export async function POST(request: NextRequest) {
         avatar_id: avatarId,
         name,
         category,
-        video_url: videoUrl,
+        video_url: imageUrl,
         status: initialStatus,
         did_talk_id: didTalkId, // 保存 D-ID talk ID 用于状态轮询
         created_at: new Date().toISOString(),

@@ -6,47 +6,47 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Upload, Video, AlertCircle } from 'lucide-react'
+import { Upload, AlertCircle, Image } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export default function DigitalHumanPage() {
-  const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [name, setName] = useState('')
   const [category, setCategory] = useState('')
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState<string>('')
 
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // 验证视频大小和格式
-      if (file.size > 500 * 1024 * 1024) { // 500MB
-        alert('视频大小不能超过500MB')
+      // 验证图片大小和格式
+      if (file.size > 10 * 1024 * 1024) { // 10MB
+        alert('图片大小不能超过10MB')
         return
       }
-      if (!file.type.startsWith('video/')) {
-        alert('请上传视频文件')
+      if (!file.type.startsWith('image/')) {
+        alert('请上传图片文件（JPG、PNG 等）')
         return
       }
-      setVideoFile(file)
+      setImageFile(file)
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!videoFile || !name || !category) {
+    if (!imageFile || !name || !category) {
       alert('请填写所有必填项')
       return
     }
 
     setUploading(true)
-    setProgress('正在上传视频...')
+    setProgress('正在上传图片...')
 
     try {
-      // 1. 上传视频到服务器/云存储
+      // 1. 上传图片到服务器/云存储
       const formData = new FormData()
-      formData.append('video', videoFile)
+      formData.append('image', imageFile)
       formData.append('name', name)
       formData.append('category', category)
 
@@ -55,17 +55,17 @@ export default function DigitalHumanPage() {
         body: formData,
       })
 
-      if (!uploadResponse.ok) throw new Error('视频上传失败')
+      if (!uploadResponse.ok) throw new Error('图片上传失败')
 
-      const { videoUrl } = await uploadResponse.json()
-      setProgress('视频上传成功，正在创建数字人...')
+      const { imageUrl } = await uploadResponse.json()
+      setProgress('图片上传成功，正在创建数字人...')
 
       // 2. 调用数字人克隆API
       const cloneResponse = await fetch('/api/digital-human/clone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          videoUrl,
+          imageUrl,
           name,
           category,
         }),
@@ -105,18 +105,18 @@ export default function DigitalHumanPage() {
           <CardContent>
             <div className="space-y-4">
               <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                {videoFile ? (
+                {imageFile ? (
                   <div className="space-y-2">
-                    <Video className="w-12 h-12 mx-auto text-primary" />
-                    <p className="text-sm font-medium">{videoFile.name}</p>
+                    <Upload className="w-12 h-12 mx-auto text-primary" />
+                    <p className="text-sm font-medium">{imageFile.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {(videoFile.size / (1024 * 1024)).toFixed(2)} MB
+                      {(imageFile.size / (1024 * 1024)).toFixed(2)} MB
                     </p>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setVideoFile(null)}
+                      onClick={() => setImageFile(null)}
                     >
                       重新选择
                     </Button>
@@ -124,11 +124,11 @@ export default function DigitalHumanPage() {
                 ) : (
                   <>
                     <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-sm font-medium mb-2">上传视频</p>
+                    <p className="text-sm font-medium mb-2">上传图片</p>
                     <Input
                       type="file"
-                      accept="video/*"
-                      onChange={handleVideoUpload}
+                      accept="image/*"
+                      onChange={handleImageUpload}
                       className="max-w-xs mx-auto"
                     />
                   </>
@@ -138,9 +138,10 @@ export default function DigitalHumanPage() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="text-xs space-y-1">
-                  <p>• 视频长度1分钟-4分钟，超出则取前4分钟</p>
-                  <p>• 建议选择大小在500MB以内的视频，上传更快</p>
-                  <p>• 单人出镜，没有出现遮挡，没有出现侧脸</p>
+                  <p>• 支持 JPG、PNG、JPEG 等常见图片格式</p>
+                  <p>• 建议图片大小在 10MB 以内</p>
+                  <p>• 建议使用清晰的正面照片，单人出镜</p>
+                  <p>• 图片将用于生成会说话的数字人</p>
                 </AlertDescription>
               </Alert>
             </div>
