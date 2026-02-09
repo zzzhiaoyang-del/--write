@@ -38,31 +38,38 @@ export async function POST(request: NextRequest) {
 
     // 🎯 使用 D-ID API（最便宜方案，约 $10-20/分身）
     let avatarId = `avatar_${Date.now()}`
+    let didTalkId: string | null = null
 
     if (process.env.DID_API_KEY) {
-      // 调用 D-ID API 创建数字人
+      // 调用 D-ID API 创建数字人（使用 /talks 端点）
       try {
-        const didResponse = await fetch('https://api.d-id.com/clips', {
+        const didResponse = await fetch('https://api.d-id.com/talks', {
           method: 'POST',
           headers: {
             'Authorization': process.env.DID_API_KEY,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            presenter_id: 'custom',
-            source_url: videoUrl, // 上传的视频URL
+            source_url: videoUrl, // 上传的视频/图片URL
             script: {
               type: 'text',
               input: 'Hello, I am your digital human clone!', // 测试文本
+            },
+            config: {
+              fluent: true,
+              pad_audio: 0,
             },
           }),
         })
 
         if (didResponse.ok) {
           const didData = await didResponse.json()
-          avatarId = didData.id // 使用 D-ID 返回的 ID
+          didTalkId = didData.id // D-ID talk ID
+          avatarId = `did_${didData.id}` // 使用 D-ID 返回的 ID
+          console.log('D-ID API success:', didData)
         } else {
-          console.error('D-ID API error:', await didResponse.text())
+          const errorText = await didResponse.text()
+          console.error('D-ID API error:', errorText)
           // 如果 API 调用失败，继续使用模拟数据
         }
       } catch (error) {
@@ -86,6 +93,7 @@ export async function POST(request: NextRequest) {
         category,
         video_url: videoUrl,
         status: initialStatus,
+        did_talk_id: didTalkId, // 保存 D-ID talk ID 用于状态轮询
         created_at: new Date().toISOString(),
       })
       .select()

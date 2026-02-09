@@ -14,6 +14,7 @@ interface DigitalHuman {
   status: 'processing' | 'completed' | 'failed'
   created_at: string
   avatar_id: string
+  result_url?: string // D-ID 生成的视频URL
 }
 
 export default function DigitalHumanListPage() {
@@ -24,6 +25,24 @@ export default function DigitalHumanListPage() {
     fetchDigitalHumans()
   }, [])
 
+  // 自动轮询处理中的数字人状态
+  useEffect(() => {
+    const processingHumans = humans.filter(h => h.status === 'processing')
+
+    if (processingHumans.length === 0) {
+      return
+    }
+
+    // 每5秒检查一次状态
+    const interval = setInterval(async () => {
+      for (const human of processingHumans) {
+        await checkStatus(human.id)
+      }
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [humans])
+
   const fetchDigitalHumans = async () => {
     try {
       const response = await fetch('/api/digital-human/list')
@@ -33,6 +52,27 @@ export default function DigitalHumanListPage() {
       console.error('Error fetching digital humans:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const checkStatus = async (digitalHumanId: string) => {
+    try {
+      const response = await fetch('/api/digital-human/check-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ digitalHumanId }),
+      })
+
+      const data = await response.json()
+
+      // 如果状态已完成或失败，刷新列表
+      if (data.status === 'completed' || data.status === 'failed') {
+        await fetchDigitalHumans()
+      }
+    } catch (error) {
+      console.error('Error checking status:', error)
     }
   }
 
@@ -108,7 +148,30 @@ export default function DigitalHumanListPage() {
                   <div className="text-xs text-muted-foreground">
                     ID: {human.avatar_id}
                   </div>
-                  {human.status === 'completed' && (
+
+                  {/* 显示生成的视频 */}
+                  {human.status === 'completed' && human.result_url && (
+                    <div className="mt-4">
+                      <video
+                        src={human.result_url}
+                        controls
+                        className="w-full rounded-lg"
+                        poster={human.result_url.replace('.mp4', '_thumbnail.jpg')}
+                      >
+                        您的浏览器不支持视频播放
+                      </video>
+                      <a
+                        href={human.result_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:underline mt-2 inline-block"
+                      >
+                        在新窗口打开视频
+                      </a>
+                    </div>
+                  )}
+
+                  {human.status === 'completed' && !human.result_url && (
                     <Button className="w-full mt-4" size="sm">
                       使用数字人
                     </Button>
