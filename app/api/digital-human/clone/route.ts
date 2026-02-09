@@ -73,6 +73,10 @@ export async function POST(request: NextRequest) {
     // 如果没有配置 API Key，使用 MVP 模式（模拟数据）
 
     // 保存到数据库
+    // 如果使用了 D-ID API，状态为 processing（等待 webhook）
+    // 如果是 MVP 模式，直接标记为 completed
+    const initialStatus = process.env.DID_API_KEY ? 'processing' : 'completed'
+
     const { data: insertedData, error: dbError } = await supabase
       .from('digital_humans')
       .insert({
@@ -81,26 +85,11 @@ export async function POST(request: NextRequest) {
         name,
         category,
         video_url: videoUrl,
-        status: 'processing', // processing, completed, failed
+        status: initialStatus,
         created_at: new Date().toISOString(),
       })
       .select()
       .single()
-
-    if (dbError) {
-      console.error('Database error:', dbError)
-      return NextResponse.json({ error: '保存失败' }, { status: 500 })
-    }
-
-    // 🎯 MVP模式：3秒后自动标记为"已完成"（模拟真实处理）
-    // 生产环境应该通过webhook回调更新状态
-    setTimeout(async () => {
-      const supabaseUpdate = await createClient()
-      await supabaseUpdate
-        .from('digital_humans')
-        .update({ status: 'completed' })
-        .eq('id', insertedData.id)
-    }, 3000)
 
     if (dbError) {
       console.error('Database error:', dbError)
