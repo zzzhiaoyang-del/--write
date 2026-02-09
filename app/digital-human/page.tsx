@@ -92,7 +92,7 @@ export default function DigitalHumanPage() {
     <div className="container mx-auto py-8 max-w-2xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">数字分身</h1>
-        <p className="text-muted-foreground">上传视频，创建您的数字人分身</p>
+        <p className="text-muted-foreground">上传图片，创建您的数字人分身</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
