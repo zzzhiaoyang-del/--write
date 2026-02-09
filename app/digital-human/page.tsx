@@ -3,10 +3,9 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Upload, AlertCircle, Image } from 'lucide-react'
+import { Upload, AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export default function DigitalHumanPage() {
@@ -73,7 +72,7 @@ export default function DigitalHumanPage() {
 
       if (!cloneResponse.ok) throw new Error('数字人创建失败')
 
-      const { avatarId } = await cloneResponse.json()
+      await cloneResponse.json()
       setProgress('数字人创建成功！')
 
       // 重定向到数字人列表页
@@ -189,7 +188,7 @@ export default function DigitalHumanPage() {
           type="submit"
           className="w-full"
           size="lg"
-          disabled={uploading || !videoFile || !name || !category}
+          disabled={uploading || !imageFile || !name || !category}
         >
           {uploading ? progress : '提交'}
         </Button>
