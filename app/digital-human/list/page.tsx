@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Video, Plus, Loader2 } from 'lucide-react'
+import { Video, Plus, Loader2, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 
 interface DigitalHuman {
@@ -171,10 +171,13 @@ export default function DigitalHumanListPage() {
                     </div>
                   )}
 
-                  {human.status === 'completed' && !human.result_url && (
-                    <Button className="w-full mt-4" size="sm">
-                      使用数字人
-                    </Button>
+                  {human.status === 'completed' && (
+                    <Link href={`/digital-human/create-video?avatarId=${human.avatar_id}&name=${encodeURIComponent(human.name)}`}>
+                      <Button className="w-full mt-4" size="sm">
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        去创作
+                      </Button>
+                    </Link>
                   )}
                   {human.status === 'processing' && (
                     <div className="flex items-center justify-center py-4">
