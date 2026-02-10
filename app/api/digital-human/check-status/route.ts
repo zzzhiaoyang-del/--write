@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 调用 D-ID API 检查状态
-    if (!process.env.DID_API_KEY) {
+    if (!process.env.D_ID_API_KEY) {
       return NextResponse.json({ error: '未配置D-ID API Key' }, { status: 500 })
     }
 
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         {
           method: 'GET',
           headers: {
-            'Authorization': process.env.DID_API_KEY,
+            'Authorization': `Basic ${process.env.D_ID_API_KEY}`,
           },
         }
       )

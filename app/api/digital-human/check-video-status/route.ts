@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getDIDTaskStatus, convertDIDStatusToDBStatus } from '@/lib/services/did.service'
+
+/**
+ * 检查视频生成状态 API
+ * 从百度云API迁移到D-ID API
+ */
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,22 +54,31 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 检查是否配置了百度 API
-    const hasBaiduConfig = process.env.BAIDU_API_KEY && process.env.BAIDU_SECRET_KEY
+    // 检查是否配置了 D-ID API
+    const hasDIDConfig = !!process.env.D_ID_API_KEY
 
-    if (hasBaiduConfig) {
-      // 调用百度 API 查询任务状态
+    if (hasDIDConfig && work.task_id) {
+      // 调用 D-ID API 查询任务状态
       try {
-        const result = await checkBaiduVideoStatus(work.task_id)
+        const didStatus = await getDIDTaskStatus(work.task_id, 'talks')
+        const dbStatus = convertDIDStatusToDBStatus(didStatus.status)
 
         // 更新数据库
+        const updateData: any = {
+          status: dbStatus,
+        }
+
+        if (didStatus.result_url) {
+          updateData.video_url = didStatus.result_url
+        }
+
+        if (didStatus.duration) {
+          updateData.duration = didStatus.duration
+        }
+
         const { error: updateError } = await supabase
           .from('video_works')
-          .update({
-            status: result.status,
-            video_url: result.video_url,
-            duration: result.duration,
-          })
+          .update(updateData)
           .eq('id', workId)
 
         if (updateError) {
@@ -71,12 +86,12 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json({
-          status: result.status,
-          video_url: result.video_url,
-          duration: result.duration,
+          status: dbStatus,
+          video_url: didStatus.result_url,
+          duration: didStatus.duration,
         })
       } catch (error: any) {
-        console.error('查询百度任务状态失败:', error)
+        console.error('查询 D-ID 任务状态失败:', error)
         return NextResponse.json(
           { error: error.message || '查询失败' },
           { status: 500 }
@@ -97,72 +112,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-// 查询百度数字人视频生成状态
-async function checkBaiduVideoStatus(taskId: string) {
-  // 获取 Access Token
-  const accessToken = await getBaiduAccessToken()
-
-  // 调用百度 API 查询任务状态
-  const response = await fetch(
-    `https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/digitalHuman/video/query?access_token=${accessToken}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        task_id: taskId,
-      }),
-    }
-  )
-
-  const data = await response.json()
-
-  if (!response.ok || data.error_code) {
-    throw new Error(data.error_msg || '查询任务状态失败')
-  }
-
-  // 百度 API 返回的状态：
-  // 0: 处理中
-  // 1: 成功
-  // 2: 失败
-  let status: 'processing' | 'completed' | 'failed' = 'processing'
-  if (data.status === 1) {
-    status = 'completed'
-  } else if (data.status === 2) {
-    status = 'failed'
-  }
-
-  return {
-    status,
-    video_url: data.video_url || null,
-    duration: data.duration || null,
-  }
-}
-
-// 获取百度 Access Token
-async function getBaiduAccessToken(): Promise<string> {
-  const apiKey = process.env.BAIDU_API_KEY
-  const secretKey = process.env.BAIDU_SECRET_KEY
-
-  if (!apiKey || !secretKey) {
-    throw new Error('未配置百度 API 密钥')
-  }
-
-  const response = await fetch(
-    `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${apiKey}&client_secret=${secretKey}`,
-    {
-      method: 'POST',
-    }
-  )
-
-  const data = await response.json()
-
-  if (!response.ok || data.error) {
-    throw new Error(data.error_description || '获取 Access Token 失败')
-  }
-
-  return data.access_token
 }
