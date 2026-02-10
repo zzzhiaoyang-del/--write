@@ -71,6 +71,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 检查是否是视频文件（D-ID talks API 只接受图片）
+    const isVideoFile = /\.(mp4|mov|avi|webm)$/i.test(presenterIdOrUrl)
+    if (isVideoFile && !digitalHuman.presenter_id) {
+      console.error('检测到视频文件，但没有 presenter_id:', presenterIdOrUrl)
+      return NextResponse.json(
+        { error: '该数字人是从视频克隆的，暂时无法用于创作视频。请使用图片克隆的数字人，或等待视频克隆功能完善。' },
+        { status: 400 }
+      )
+    }
+
     console.log('使用的 presenter ID/URL:', presenterIdOrUrl)
 
     // 检查是否配置了 D-ID API
