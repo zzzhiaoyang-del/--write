@@ -7,7 +7,16 @@ import { startBackgroundPolling } from '@/lib/services/task-polling'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('=== 开始处理视频生成请求 ===')
+    console.log('环境变量检查:')
+    console.log('- NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? '已设置' : '❌ 未设置')
+    console.log('- NEXT_PUBLIC_SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '已设置' : '❌ 未设置')
+    console.log('- SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? '已设置' : '❌ 未设置')
+    console.log('- BAIDU_API_KEY:', process.env.BAIDU_API_KEY ? '已设置' : '❌ 未设置')
+    console.log('- BAIDU_SECRET_KEY:', process.env.BAIDU_SECRET_KEY ? '已设置' : '❌ 未设置')
+
     const supabase = await createClient()
+    console.log('Supabase 客户端创建成功')
 
     // 检查用户认证
     const { data: { user }, error: authError } = await supabase.auth.getUser()
