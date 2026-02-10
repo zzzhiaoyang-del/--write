@@ -45,6 +45,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 查询数字人信息，获取 presenter_id 或 video_url
+    const { data: digitalHuman, error: queryError } = await supabase
+      .from('digital_humans')
+      .select('id, presenter_id, video_url')
+      .eq('avatar_id', avatarId)
+      .single()
+
+    if (queryError || !digitalHuman) {
+      console.error('查询数字人失败:', queryError)
+      return NextResponse.json(
+        { error: '数字人不存在' },
+        { status: 404 }
+      )
+    }
+
+    // 确定使用哪个ID/URL传给 D-ID API
+    // 优先使用 presenter_id，其次使用 video_url（图片克隆时存储的是图片URL）
+    const presenterIdOrUrl = digitalHuman.presenter_id || digitalHuman.video_url
+
+    if (!presenterIdOrUrl) {
+      return NextResponse.json(
+        { error: '数字人缺少必要的图片或视频信息' },
+        { status: 400 }
+      )
+    }
+
+    console.log('使用的 presenter ID/URL:', presenterIdOrUrl)
+
     // 检查是否配置了 D-ID API
     const hasDIDConfig = !!process.env.D_ID_API_KEY
 
@@ -54,7 +82,7 @@ export async function POST(request: NextRequest) {
     if (hasDIDConfig) {
       // 调用 D-ID 数字人视频生成 API
       try {
-        taskId = await submitVideoGenerationTask(text, avatarId, {
+        taskId = await submitVideoGenerationTask(text, presenterIdOrUrl, {
           voiceId: voice,
           speed,
           volume,
