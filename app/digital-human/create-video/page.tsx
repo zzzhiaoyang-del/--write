@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -23,7 +23,7 @@ interface VideoWork {
   duration?: number
 }
 
-export default function CreateVideoPage() {
+function CreateVideoContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const avatarId = searchParams.get('avatarId')
@@ -443,5 +443,17 @@ export default function CreateVideoPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CreateVideoPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto py-8 flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    }>
+      <CreateVideoContent />
+    </Suspense>
   )
 }

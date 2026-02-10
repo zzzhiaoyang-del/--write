@@ -43,7 +43,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 
 type SortOption = "recommended" | "popular" | "newest"
 
-export default function MarketplacePage() {
+function MarketplaceContent() {
   const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState(searchParams?.get("query") || "")
   const [selectedCategory, setSelectedCategory] = useState("all")
@@ -188,5 +188,13 @@ export default function MarketplacePage() {
 
       <Footer />
     </div>
+  )
+}
+
+export default function MarketplacePage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <MarketplaceContent />
+    </Suspense>
   )
 }
