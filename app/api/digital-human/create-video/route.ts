@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { startBackgroundPolling } from '@/lib/services/task-polling'
+import { submitVideoGenerationTask } from '@/lib/services/did.service'
 
-// 百度数字人视频生成 API
-// 文档: https://cloud.baidu.com/doc/VCA/s/Hlwvz8wd6
+// D-ID 数字人视频生成 API
+// 文档: https://docs.d-id.com/reference/talks
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,8 +13,7 @@ export async function POST(request: NextRequest) {
     console.log('- NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? '已设置' : '❌ 未设置')
     console.log('- NEXT_PUBLIC_SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '已设置' : '❌ 未设置')
     console.log('- SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? '已设置' : '❌ 未设置')
-    console.log('- BAIDU_API_KEY:', process.env.BAIDU_API_KEY ? '已设置' : '❌ 未设置')
-    console.log('- BAIDU_SECRET_KEY:', process.env.BAIDU_SECRET_KEY ? '已设置' : '❌ 未设置')
+    console.log('- D_ID_API_KEY:', process.env.D_ID_API_KEY ? '已设置' : '❌ 未设置')
 
     const supabase = await createClient()
     console.log('Supabase 客户端创建成功')
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { avatarId, text, voice = 'female-1', speed = 1.0, volume = 1.0, pitch = 1.0 } = body
+    const { avatarId, text, voice = 'zh-CN-XiaoxiaoNeural', speed = 1.0, volume = 1.0, pitch = 1.0 } = body
 
     if (!avatarId || !text) {
       return NextResponse.json(
@@ -45,26 +45,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 检查是否配置了百度 API
-    const hasBaiduConfig = process.env.BAIDU_API_KEY && process.env.BAIDU_SECRET_KEY
+    // 检查是否配置了 D-ID API
+    const hasDIDConfig = !!process.env.D_ID_API_KEY
 
     let taskId = ''
     let status = 'processing'
 
-    if (hasBaiduConfig) {
-      // 调用百度数字人视频生成 API
+    if (hasDIDConfig) {
+      // 调用 D-ID 数字人视频生成 API
       try {
-        const result = await createBaiduDigitalHumanVideo({
-          avatarId,
-          text,
-          voice,
+        taskId = await submitVideoGenerationTask(text, avatarId, {
+          voiceId: voice,
           speed,
           volume,
           pitch,
         })
-        taskId = result.taskId
+        console.log('D-ID API 调用成功，任务ID:', taskId)
       } catch (error: any) {
-        console.error('百度 API 调用失败:', error)
+        console.error('D-ID API 调用失败:', error)
         return NextResponse.json(
           { error: error.message || '视频生成失败' },
           { status: 500 }
@@ -72,7 +70,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // MVP 模式：使用模拟数据
-      console.log('⚠️ 未配置百度 API，使用模拟数据')
+      console.log('⚠️ 未配置 D-ID API，使用模拟数据')
       taskId = `mock_task_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
 
       // 模拟：5秒后自动完成
@@ -118,8 +116,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 如果配置了百度 API，启动后台轮询
-    if (hasBaiduConfig && work.id) {
+    // 如果配置了 D-ID API，启动后台轮询
+    if (hasDIDConfig && work.id) {
       startBackgroundPolling(work.id, taskId)
       console.log(`已启动后台轮询: 作品ID ${work.id}, 任务ID ${taskId}`)
     }
@@ -136,73 +134,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-// 百度数字人视频生成函数
-async function createBaiduDigitalHumanVideo(params: {
-  avatarId: string
-  text: string
-  voice: string
-  speed: number
-  volume: number
-  pitch: number
-}) {
-  const { avatarId, text, voice, speed, volume, pitch } = params
-
-  // 获取 Access Token
-  const accessToken = await getBaiduAccessToken()
-
-  // 调用百度数字人视频生成 API
-  const response = await fetch(
-    `https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/digitalHuman/video/create?access_token=${accessToken}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        avatar_id: avatarId,
-        text,
-        voice_id: voice,
-        speed,
-        volume,
-        pitch,
-      }),
-    }
-  )
-
-  const data = await response.json()
-
-  if (!response.ok || data.error_code) {
-    throw new Error(data.error_msg || '百度 API 调用失败')
-  }
-
-  return {
-    taskId: data.task_id,
-  }
-}
-
-// 获取百度 Access Token
-async function getBaiduAccessToken(): Promise<string> {
-  const apiKey = process.env.BAIDU_API_KEY
-  const secretKey = process.env.BAIDU_SECRET_KEY
-
-  if (!apiKey || !secretKey) {
-    throw new Error('未配置百度 API 密钥')
-  }
-
-  const response = await fetch(
-    `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${apiKey}&client_secret=${secretKey}`,
-    {
-      method: 'POST',
-    }
-  )
-
-  const data = await response.json()
-
-  if (!response.ok || data.error) {
-    throw new Error(data.error_description || '获取 Access Token 失败')
-  }
-
-  return data.access_token
 }

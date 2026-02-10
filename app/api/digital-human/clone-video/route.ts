@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getBaiduAccessToken } from '@/lib/baidu-auth'
+import { submitVideoCloneTask } from '@/lib/services/did.service'
 
 /**
  * 视频克隆数字人 API
  *
  * 修改点：
- * 1. 从讯飞开放平台改为百度智能云数字人API
- * 2. 鉴权方式：讯飞 HMAC-SHA256 签名 → 百度 AccessToken
- * 3. API 端点：讯飞 API → 百度智能云 API
- * 4. 请求参数：适配百度 API 格式
+ * 1. 从百度智能云改为 D-ID API
+ * 2. 鉴权方式：百度 AccessToken → D-ID Basic Auth
+ * 3. API 端点：百度智能云 API → D-ID API
+ * 4. 请求参数：适配 D-ID API 格式
  *
- * 百度智能云数字人 API 文档：
- * https://cloud.baidu.com/doc/VCA/s/Hlkql5yx8
+ * D-ID API 文档：
+ * https://docs.d-id.com/reference/agents
  */
 
 export async function POST(request: NextRequest) {
@@ -25,76 +25,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '未登录' }, { status: 401 })
     }
 
-    const { videoUrl } = await request.json()
+    const { videoUrl, name } = await request.json()
 
     if (!videoUrl) {
       return NextResponse.json({ error: '缺少视频 URL' }, { status: 400 })
     }
 
-    // 百度 API 配置
-    const BAIDU_API_KEY = process.env.BAIDU_API_KEY
-    const BAIDU_SECRET_KEY = process.env.BAIDU_SECRET_KEY
+    // D-ID API 配置
+    const D_ID_API_KEY = process.env.D_ID_API_KEY
 
     let avatarId = `avatar_video_${Date.now()}`
-    let baiduTaskId: string | null = null
+    let didTaskId: string | null = null
 
-    // 如果配置了百度 API，调用真实接口
-    if (BAIDU_API_KEY && BAIDU_SECRET_KEY) {
+    // 如果配置了 D-ID API，调用真实接口
+    if (D_ID_API_KEY) {
       try {
-        // 获取 AccessToken（修改点：百度鉴权方式）
-        const accessToken = await getBaiduAccessToken()
-
-        // 调用百度视频克隆接口（修改点：API 端点和参数）
-        const baiduResponse = await fetch(
-          `https://aip.baidubce.com/rpc/2.0/avatar/v1/clone/video?access_token=${accessToken}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              video_url: videoUrl,
-              // 百度 API 其他参数
-            }),
-          }
-        )
-
-        if (baiduResponse.ok) {
-          const baiduData = await baiduResponse.json()
-
-          // 百度 API 响应格式处理（修改点：适配百度响应）
-          if (baiduData.error_code) {
-            console.error('百度 API 错误:', baiduData.error_msg)
-            throw new Error(baiduData.error_msg)
-          }
-
-          baiduTaskId = baiduData.result?.task_id || baiduData.task_id
-          avatarId = `baidu_video_${baiduTaskId}`
-          console.log('百度视频克隆 API 调用成功:', baiduData)
-        } else {
-          const errorText = await baiduResponse.text()
-          console.error('百度 API 错误:', errorText)
-          // API 调用失败，使用模拟数据
-        }
-      } catch (error) {
-        console.error('百度 API 调用失败:', error)
+        // 调用 D-ID 视频克隆接口
+        didTaskId = await submitVideoCloneTask(videoUrl, name || `视频数字人_${Date.now()}`)
+        avatarId = `did_video_${didTaskId}`
+        console.log('D-ID 视频克隆 API 调用成功，任务ID:', didTaskId)
+      } catch (error: any) {
+        console.error('D-ID API 调用失败:', error)
         // 失败时使用模拟数据
       }
     }
 
-    // 保存到数据库（保留原有逻辑）
-    const initialStatus = BAIDU_API_KEY ? 'processing' : 'completed'
+    // 保存到数据库
+    const initialStatus = D_ID_API_KEY && didTaskId ? 'processing' : 'completed'
 
     const { data: insertedData, error: dbError } = await supabase
       .from('digital_humans')
       .insert({
         user_id: user.id,
         avatar_id: avatarId,
-        name: `视频数字人_${Date.now()}`,
+        name: name || `视频数字人_${Date.now()}`,
         category: 'video',
         video_url: videoUrl,
         status: initialStatus,
-        xfyun_task_id: baiduTaskId, // 复用字段存储百度 task_id
+        did_talk_id: didTaskId, // 使用 D-ID 任务 ID
         clone_type: 'video', // 标记为视频克隆
         created_at: new Date().toISOString(),
       })
@@ -110,8 +78,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       avatarId,
-      message: BAIDU_API_KEY
-        ? '🎉 视频数字人创建成功！（使用百度智能云 API）'
+      message: D_ID_API_KEY && didTaskId
+        ? '🎉 视频数字人创建成功！（使用 D-ID API）'
         : '🎉 视频数字人创建成功！（MVP模式：模拟数据）',
     })
 
