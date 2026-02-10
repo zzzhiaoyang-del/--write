@@ -68,7 +68,7 @@ export async function submitImageCloneTask(
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
-        presenter_id: imageUrl, // D-ID 使用图片URL作为presenter
+        source_url: imageUrl, // D-ID clips API 使用 source_url 参数
         script: {
           type: 'text',
           input: 'Hello', // 默认文本，用于测试
@@ -82,12 +82,14 @@ export async function submitImageCloneTask(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
+      console.error('D-ID API 错误响应:', errorData)
       throw new Error(
         `D-ID 图片克隆失败: ${errorData.error?.description || response.statusText}`
       )
     }
 
     const data: DIDTaskResponse = await response.json()
+    console.log('D-ID 图片克隆响应:', data)
     return data.id
   } catch (error: any) {
     console.error('提交 D-ID 图片克隆任务失败:', error)
