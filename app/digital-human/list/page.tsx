@@ -4,8 +4,19 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Video, Plus, Loader2, Sparkles } from 'lucide-react'
+import { Video, Plus, Loader2, Sparkles, Trash2 } from 'lucide-react'
 import Link from 'next/link'
+import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface DigitalHuman {
   id: string
@@ -20,6 +31,9 @@ interface DigitalHuman {
 export default function DigitalHumanListPage() {
   const [humans, setHumans] = useState<DigitalHuman[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [humanToDelete, setHumanToDelete] = useState<DigitalHuman | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     fetchDigitalHumans()
@@ -86,6 +100,41 @@ export default function DigitalHumanListPage() {
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
+  const handleDeleteClick = (human: DigitalHuman) => {
+    setHumanToDelete(human)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!humanToDelete) return
+
+    try {
+      setIsDeleting(true)
+      const response = await fetch('/api/digital-human/delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ digitalHumanId: humanToDelete.id }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || '删除失败')
+      }
+
+      toast.success('数字人已删除')
+      await fetchDigitalHumans()
+    } catch (error: any) {
+      console.error('Error deleting digital human:', error)
+      toast.error(error.message || '删除失败')
+    } finally {
+      setIsDeleting(false)
+      setDeleteDialogOpen(false)
+      setHumanToDelete(null)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -128,7 +177,7 @@ export default function DigitalHumanListPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {humans.map((human) => (
-            <Card key={human.id} className="overflow-hidden">
+            <Card key={human.id} className="overflow-hidden relative">
               <CardHeader className="pb-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -137,7 +186,18 @@ export default function DigitalHumanListPage() {
                       {human.category}
                     </p>
                   </div>
-                  {getStatusBadge(human.status)}
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(human.status)}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDeleteClick(human)}
+                      title="删除数字人"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -191,6 +251,35 @@ export default function DigitalHumanListPage() {
           ))}
         </div>
       )}
+
+      {/* 删除确认对话框 */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除数字人？</AlertDialogTitle>
+            <AlertDialogDescription>
+              您确定要删除数字人 "{humanToDelete?.name}" 吗？此操作无法撤销，将同时删除云端存储的所有相关数据。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  删除中...
+                </>
+              ) : (
+                '确认删除'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

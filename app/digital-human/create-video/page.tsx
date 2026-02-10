@@ -35,6 +35,8 @@ function CreateVideoContent() {
   const [works, setWorks] = useState<VideoWork[]>([])
   const [isLoadingWorks, setIsLoadingWorks] = useState(true)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [avatarInfo, setAvatarInfo] = useState<any>(null)
+  const [isLoadingAvatar, setIsLoadingAvatar] = useState(true)
 
   // 高级设置
   const [speed, setSpeed] = useState('1.0')
@@ -47,8 +49,23 @@ function CreateVideoContent() {
       router.push('/digital-human/list')
       return
     }
+    fetchAvatarInfo()
     fetchWorks()
   }, [avatarId])
+
+  const fetchAvatarInfo = async () => {
+    try {
+      setIsLoadingAvatar(true)
+      const response = await fetch('/api/digital-human/list')
+      const data = await response.json()
+      const avatar = data.humans?.find((h: any) => h.avatar_id === avatarId)
+      setAvatarInfo(avatar)
+    } catch (error) {
+      console.error('Error fetching avatar info:', error)
+    } finally {
+      setIsLoadingAvatar(false)
+    }
+  }
 
   // 自动轮询处理中的作品状态
   useEffect(() => {
@@ -201,13 +218,38 @@ function CreateVideoContent() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <Video className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">数字人形象预览</p>
-                  <p className="text-xs text-muted-foreground mt-1">ID: {avatarId}</p>
+              {isLoadingAvatar ? (
+                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
                 </div>
-              </div>
+              ) : avatarInfo && avatarInfo.video_url ? (
+                <div className="space-y-2">
+                  <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                    <video
+                      src={avatarInfo.video_url}
+                      controls
+                      className="w-full h-full object-contain"
+                      poster={avatarInfo.video_url.replace('.mp4', '_thumbnail.jpg')}
+                    >
+                      您的浏览器不支持视频播放
+                    </video>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{avatarInfo.name}</span>
+                    <Badge variant={avatarInfo.status === 'completed' ? 'default' : 'secondary'}>
+                      {avatarInfo.status === 'completed' ? '已完成' : avatarInfo.status}
+                    </Badge>
+                  </div>
+                </div>
+              ) : (
+                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <Video className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">数字人形象预览</p>
+                    <p className="text-xs text-muted-foreground mt-1">ID: {avatarId}</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
