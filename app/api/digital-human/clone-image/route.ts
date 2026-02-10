@@ -63,8 +63,6 @@ export async function POST(request: NextRequest) {
         video_url: imageUrl, // 存储图片 URL
         status: initialStatus,
         did_talk_id: didTaskId, // 使用 D-ID 任务 ID
-        clone_type: 'image', // 标记为图片克隆
-        model_version: model || 'default',
         created_at: new Date().toISOString(),
       })
       .select()
