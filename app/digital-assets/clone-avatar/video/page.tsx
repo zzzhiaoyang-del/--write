@@ -57,7 +57,11 @@ export default function VideoAvatarPage() {
         body: formData,
       })
 
-      if (!uploadResponse.ok) throw new Error('视频上传失败')
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json()
+        console.error('上传失败:', errorData)
+        throw new Error(errorData.details || errorData.error || '视频上传失败')
+      }
 
       const { videoUrl } = await uploadResponse.json()
       setProgress('视频上传成功，正在创建数字人...')
