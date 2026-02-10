@@ -43,9 +43,13 @@ function getAuthHeaders(): HeadersInit {
     throw new Error('D-ID API Key 未配置，请在环境变量中设置 D_ID_API_KEY')
   }
 
+  // D-ID API Key 格式：email:api_key
+  // 需要进行 Base64 编码
+  const base64Credentials = Buffer.from(D_ID_CONFIG.apiKey).toString('base64')
+
   return {
     'Content-Type': 'application/json',
-    'Authorization': `Basic ${D_ID_CONFIG.apiKey}`,
+    'Authorization': `Basic ${base64Credentials}`,
     'Accept': 'application/json',
   }
 }
