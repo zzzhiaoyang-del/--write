@@ -11,6 +11,7 @@ import {
   Radio,
   ArrowRight,
   CheckCircle2,
+  FolderOpen,
 } from "lucide-react"
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -51,7 +52,7 @@ export function DigitalAssetCard({ asset }: DigitalAssetCardProps) {
           ))}
         </div>
       </CardContent>
-      <CardFooter className="px-6 pb-6 pt-0">
+      <CardFooter className="px-6 pb-6 pt-0 flex flex-col gap-2">
         <Link href={asset.href} className="w-full">
           <Button
             className="w-full group/btn bg-primary hover:bg-primary/90 text-primary-foreground"
@@ -59,6 +60,15 @@ export function DigitalAssetCard({ asset }: DigitalAssetCardProps) {
           >
             立即使用
             <ArrowRight className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+          </Button>
+        </Link>
+        <Link href="/digital-human/list" className="w-full">
+          <Button
+            variant="outline"
+            className="w-full group/btn"
+          >
+            <FolderOpen className="w-4 h-4 mr-2" />
+            资产管理
           </Button>
         </Link>
       </CardFooter>

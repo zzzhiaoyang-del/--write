@@ -342,11 +342,11 @@ function CreateVideoContent() {
 
         {/* 右侧：历史作品列表 */}
         <div className="lg:col-span-1">
-          <Card className="sticky top-8">
+          <Card className="h-full flex flex-col">
             <CardHeader>
               <CardTitle>最新作品</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 flex flex-col">
               {isLoadingWorks ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin" />
