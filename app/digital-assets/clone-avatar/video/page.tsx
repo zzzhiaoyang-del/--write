@@ -58,9 +58,27 @@ export default function VideoAvatarPage() {
       })
 
       if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json()
-        console.error('上传失败:', errorData)
-        throw new Error(errorData.details || errorData.error || '视频上传失败')
+        // 尝试解析 JSON，如果失败则读取文本
+        let errorMessage = '视频上传失败'
+        try {
+          const errorData = await uploadResponse.json()
+          console.error('上传失败 (JSON):', errorData)
+          errorMessage = errorData.details || errorData.error || errorMessage
+        } catch (e) {
+          // 如果不是 JSON，读取原始文本
+          const errorText = await uploadResponse.text()
+          console.error('上传失败 (文本):', errorText)
+
+          // 检查是否是请求体过大的错误
+          if (errorText.includes('Request Entity Too Large') || errorText.includes('413')) {
+            errorMessage = '视频文件过大，Vercel 限制为 4.5MB。请使用更小的视频或升级 Vercel 套餐'
+          } else if (errorText.includes('FUNCTION_PAYLOAD_TOO_LARGE')) {
+            errorMessage = '视频文件过大，超过了服务器限制（4.5MB）'
+          } else {
+            errorMessage = `上传失败: ${errorText.substring(0, 200)}`
+          }
+        }
+        throw new Error(errorMessage)
       }
 
       const { videoUrl } = await uploadResponse.json()
