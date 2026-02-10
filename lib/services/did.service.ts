@@ -176,8 +176,10 @@ export async function submitVideoGenerationTask(
     // 如果 presenterId 是 URL，直接使用
     if (presenterId.startsWith('http')) {
       requestBody.source_url = presenterId
+      console.log('使用 source_url:', presenterId)
     } else {
       requestBody.presenter_id = presenterId
+      console.log('使用 presenter_id:', presenterId)
     }
 
     // 添加语音参数
@@ -185,20 +187,26 @@ export async function submitVideoGenerationTask(
       requestBody.script.provider.speed = options.speed
     }
 
+    console.log('D-ID talks API 请求体:', JSON.stringify(requestBody, null, 2))
+
     const response = await fetch(D_ID_ENDPOINTS.talks, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(requestBody),
     })
 
+    console.log('D-ID talks API 响应状态:', response.status, response.statusText)
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
+      console.error('D-ID talks API 错误响应:', JSON.stringify(errorData, null, 2))
       throw new Error(
-        `D-ID 视频生成失败: ${errorData.error?.description || response.statusText}`
+        `D-ID 视频生成失败: ${errorData.error?.description || errorData.message || response.statusText}`
       )
     }
 
     const data: DIDTaskResponse = await response.json()
+    console.log('D-ID 视频生成响应:', data)
     return data.id
   } catch (error: any) {
     console.error('提交 D-ID 视频生成任务失败:', error)
