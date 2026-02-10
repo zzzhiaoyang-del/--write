@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { startBackgroundPolling } from '@/lib/services/task-polling'
 
 // 百度数字人视频生成 API
 // 文档: https://cloud.baidu.com/doc/VCA/s/Hlwvz8wd6
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     } else {
       // MVP 模式：使用模拟数据
       console.log('⚠️ 未配置百度 API，使用模拟数据')
-      taskId = `mock_task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      taskId = `mock_task_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
 
       // 模拟：5秒后自动完成
       setTimeout(async () => {
@@ -108,6 +109,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 如果配置了百度 API，启动后台轮询
+    if (hasBaiduConfig && work.id) {
+      startBackgroundPolling(work.id, taskId)
+      console.log(`已启动后台轮询: 作品ID ${work.id}, 任务ID ${taskId}`)
+    }
+
     return NextResponse.json({
       success: true,
       work,
@@ -138,7 +145,7 @@ async function createBaiduDigitalHumanVideo(params: {
 
   // 调用百度数字人视频生成 API
   const response = await fetch(
-    'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/digitalHuman/video/create',
+    `https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/digitalHuman/video/create?access_token=${accessToken}`,
     {
       method: 'POST',
       headers: {

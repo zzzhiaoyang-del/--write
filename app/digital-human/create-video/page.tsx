@@ -71,8 +71,11 @@ function CreateVideoContent() {
   const fetchWorks = async () => {
     try {
       setIsLoadingWorks(true)
+      console.log('获取作品列表...', { avatarId })
       const response = await fetch(`/api/digital-human/video-works?avatarId=${avatarId}`)
+      console.log('作品列表响应状态:', response.status)
       const data = await response.json()
+      console.log('作品列表数据:', data)
       setWorks(data.works || [])
     } catch (error) {
       console.error('Error fetching works:', error)
@@ -116,6 +119,8 @@ function CreateVideoContent() {
 
     try {
       setIsSubmitting(true)
+      console.log('开始提交视频生成请求...', { avatarId, text, voice })
+
       const response = await fetch('/api/digital-human/create-video', {
         method: 'POST',
         headers: {
@@ -131,7 +136,9 @@ function CreateVideoContent() {
         }),
       })
 
+      console.log('API响应状态:', response.status)
       const data = await response.json()
+      console.log('API响应数据:', data)
 
       if (!response.ok) {
         throw new Error(data.error || '生成失败')
