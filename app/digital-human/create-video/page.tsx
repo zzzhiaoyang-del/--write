@@ -112,6 +112,12 @@ function CreateVideoContent() {
         body: JSON.stringify({ workId }),
       })
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('检查视频状态失败:', response.status, errorData)
+        return
+      }
+
       const data = await response.json()
 
       // 如果状态已完成或失败，刷新列表

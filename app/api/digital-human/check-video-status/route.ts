@@ -60,8 +60,11 @@ export async function POST(request: NextRequest) {
     if (hasDIDConfig && work.task_id) {
       // 调用 D-ID API 查询任务状态
       try {
+        console.log(`查询 D-ID 任务状态: ${work.task_id}`)
         const didStatus = await getDIDTaskStatus(work.task_id, 'talks')
+        console.log(`D-ID 任务状态响应:`, didStatus)
         const dbStatus = convertDIDStatusToDBStatus(didStatus.status)
+        console.log(`转换后的数据库状态: ${dbStatus}`)
 
         // 更新数据库
         const updateData: any = {
