@@ -28,7 +28,19 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { avatarId, text, voice = 'zh-CN-XiaoxiaoNeural', speed = 1.0, volume = 1.0, pitch = 1.0 } = body
+    const { avatarId, text, voice = 'female-1', speed = 1.0, volume = 1.0, pitch = 1.0 } = body
+
+    // 将前端的语音ID映射到Microsoft Azure语音ID
+    const voiceMapping: Record<string, string> = {
+      'female-1': 'zh-CN-XiaoxiaoNeural',      // 播音-女声
+      'male-1': 'zh-CN-YunxiNeural',           // 播音-男声
+      'female-sweet': 'zh-CN-XiaoyiNeural',    // 甜美女声
+      'male-magnetic': 'zh-CN-YunjianNeural',  // 磁性男声
+    }
+
+    // 如果是自定义ID，转换为Azure语音ID；否则直接使用（兼容直接传Azure ID的情况）
+    const azureVoiceId = voiceMapping[voice] || voice
+    console.log(`语音ID映射: ${voice} -> ${azureVoiceId}`)
 
     if (!avatarId || !text) {
       return NextResponse.json(
@@ -93,7 +105,7 @@ export async function POST(request: NextRequest) {
       // 调用 D-ID 数字人视频生成 API
       try {
         taskId = await submitVideoGenerationTask(text, presenterIdOrUrl, {
-          voiceId: voice,
+          voiceId: azureVoiceId,
           speed,
           volume,
           pitch,
