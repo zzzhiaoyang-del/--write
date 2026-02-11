@@ -67,13 +67,25 @@ export async function pollTaskStatus(
             taskId
           )
 
+          // 处理 duration 值，确保是有效的数字
+          let validDuration: number | null = null
+          if (didStatus.duration !== undefined && didStatus.duration !== null) {
+            const durationNum = typeof didStatus.duration === 'number'
+              ? didStatus.duration
+              : parseFloat(String(didStatus.duration))
+
+            if (!isNaN(durationNum) && isFinite(durationNum)) {
+              validDuration = Math.round(durationNum)
+            }
+          }
+
           // 更新数据库
           await supabase
             .from('video_works')
             .update({
               status: 'completed',
               video_url: supabaseVideoUrl,
-              duration: didStatus.duration || null,
+              duration: validDuration,
               updated_at: new Date().toISOString(),
             })
             .eq('id', workId)
@@ -82,13 +94,25 @@ export async function pollTaskStatus(
         } catch (uploadError: any) {
           console.error(`任务 ${taskId} 视频上传失败:`, uploadError)
 
+          // 处理 duration 值（如果之前没有定义）
+          let validDuration: number | null = null
+          if (didStatus.duration !== undefined && didStatus.duration !== null) {
+            const durationNum = typeof didStatus.duration === 'number'
+              ? didStatus.duration
+              : parseFloat(String(didStatus.duration))
+
+            if (!isNaN(durationNum) && isFinite(durationNum)) {
+              validDuration = Math.round(durationNum)
+            }
+          }
+
           // 上传失败，保存 D-ID 原始URL
           await supabase
             .from('video_works')
             .update({
               status: 'completed',
               video_url: didStatus.result_url,
-              duration: didStatus.duration || null,
+              duration: validDuration,
               updated_at: new Date().toISOString(),
             })
             .eq('id', workId)

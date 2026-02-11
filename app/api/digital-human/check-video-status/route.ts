@@ -75,8 +75,17 @@ export async function POST(request: NextRequest) {
           updateData.video_url = didStatus.result_url
         }
 
-        if (didStatus.duration) {
-          updateData.duration = didStatus.duration
+        // 确保 duration 是有效的数字
+        if (didStatus.duration !== undefined && didStatus.duration !== null) {
+          const durationNum = typeof didStatus.duration === 'number'
+            ? didStatus.duration
+            : parseFloat(String(didStatus.duration))
+
+          if (!isNaN(durationNum) && isFinite(durationNum)) {
+            updateData.duration = Math.round(durationNum) // 转换为整数
+          } else {
+            console.warn(`无效的 duration 值: ${didStatus.duration}`)
+          }
         }
 
         const { error: updateError } = await supabase
