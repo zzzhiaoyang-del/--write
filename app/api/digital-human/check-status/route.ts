@@ -57,15 +57,21 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const didResponse = await fetch(
-        `https://api.d-id.com/talks/${digitalHuman.did_talk_id}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Basic ${process.env.D_ID_API_KEY}`,
-          },
-        }
-      )
+      // 根据 category 决定使用哪个 API 端点
+      // image: 使用 clips API
+      // video: 使用 talks API
+      const apiEndpoint = digitalHuman.category === 'image'
+        ? `https://api.d-id.com/clips/${digitalHuman.did_talk_id}`
+        : `https://api.d-id.com/talks/${digitalHuman.did_talk_id}`
+
+      console.log(`检查 D-ID 任务状态: ${apiEndpoint}`)
+
+      const didResponse = await fetch(apiEndpoint, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${process.env.D_ID_API_KEY}`,
+        },
+      })
 
       if (!didResponse.ok) {
         const errorText = await didResponse.text()
