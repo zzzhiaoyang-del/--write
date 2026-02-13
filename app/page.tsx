@@ -1,15 +1,7 @@
-import { HeroSection } from "@/components/home/hero-section"
-import { HowItWorks } from "@/components/home/how-it-works"
-import { FeaturedAgents } from "@/components/home/featured-agents"
-import { Footer } from "@/components/footer"
+import { redirect } from 'next/navigation'
 
 export default function Home() {
-  return (
-    <div className="min-h-screen">
-      <HeroSection />
-      <HowItWorks />
-      <FeaturedAgents />
-      <Footer />
-    </div>
-  )
+  // Redirect to inspiration page
+  redirect('/inspiration')
 }
+

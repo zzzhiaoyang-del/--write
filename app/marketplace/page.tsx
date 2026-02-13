@@ -3,13 +3,12 @@
 import React from "react"
 import { Suspense } from "react"
 import { useSearchParams } from "next/navigation"
-
 import { useState, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { AgentCard } from "@/components/agent-card"
 import { agents, categories, getAgentsByCategory } from "@/lib/agents-data"
-import { Footer } from "@/components/footer"
+import { AppLayout } from "@/components/app-layout"
 import {
   Search,
   Grid,
@@ -19,10 +18,6 @@ import {
   Wrench,
   Bot,
   SlidersHorizontal,
-  PenTool,
-  TrendingUp,
-  DollarSign,
-  BarChart3,
 } from "lucide-react"
 import {
   Select,
@@ -80,114 +75,84 @@ function MarketplaceContent() {
   }, [searchQuery, selectedCategory, sortBy])
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <div className="bg-muted/30 border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <h1 className="text-3xl font-bold text-foreground">智能广场</h1>
+    <AppLayout title="智能广场" description="发现最适合你的 AI 超级员工，立即开始工作">
+      {/* Search and Filter Bar */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="搜索 AI 员工、能力或标签..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 h-12 bg-white border-border"
+          />
+        </div>
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+          <SelectTrigger className="w-full sm:w-40 h-12 bg-white border-border">
+            <SlidersHorizontal className="w-4 h-4 mr-2" />
+            <SelectValue placeholder="排序方式" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="recommended">推荐</SelectItem>
+            <SelectItem value="popular">热门</SelectItem>
+            <SelectItem value="newest">最新</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Category Filters */}
+      <div className="mb-6 flex gap-2 flex-wrap">
+        {categories.map((category) => {
+          const IconComponent = iconMap[category.icon] || Grid
+          const isActive = selectedCategory === category.id
+          return (
+            <Button
+              key={category.id}
+              variant={isActive ? "default" : "outline"}
+              className={`${
+                isActive
+                  ? "bg-[#FF6600] text-white hover:bg-[#FF8533]"
+                  : "bg-white hover:bg-muted hover:border-[#FF6600] hover:text-[#FF6600]"
+              }`}
+              onClick={() => setSelectedCategory(category.id)}
+            >
+              <IconComponent className="w-4 h-4 mr-2" />
+              {category.name}
+            </Button>
+          )
+        })}
+      </div>
+
+      {/* Agent Grid - 4 columns */}
+      {filteredAgents.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredAgents.map((agent) => (
+            <AgentCard key={agent.id} agent={agent} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16 bg-white rounded-2xl border border-border">
+          <Bot className="w-16 h-16 mx-auto text-muted-foreground/50" />
+          <h3 className="mt-4 text-lg font-medium text-foreground">
+            没有找到匹配的 AI 员工
+          </h3>
           <p className="mt-2 text-muted-foreground">
-            发现最适合你的 AI 超级员工，立即开始工作
+            尝试调整搜索关键词或分类筛选
           </p>
-
-          {/* Search Bar */}
-          <div className="mt-6 flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="搜索 AI 员工、能力或标签..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-12 bg-background"
-              />
-            </div>
-            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-              <SelectTrigger className="w-full sm:w-40 h-12 bg-background">
-                <SlidersHorizontal className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="排序方式" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="recommended">推荐</SelectItem>
-                <SelectItem value="popular">热门</SelectItem>
-                <SelectItem value="newest">最新</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => {
+              setSearchQuery("")
+              setSelectedCategory("all")
+            }}
+          >
+            清除筛选
+          </Button>
         </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar - Categories */}
-          <div className="lg:w-56 shrink-0">
-            <div className="sticky top-24">
-              <h3 className="font-semibold text-foreground mb-4">分类筛选</h3>
-              <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto pb-2 lg:pb-0">
-                {categories.map((category) => {
-                  const IconComponent = iconMap[category.icon] || Grid
-                  const isActive = selectedCategory === category.id
-                  return (
-                    <Button
-                      key={category.id}
-                      variant={isActive ? "default" : "ghost"}
-                      className={`justify-start whitespace-nowrap ${
-                        isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      }`}
-                      onClick={() => setSelectedCategory(category.id)}
-                    >
-                      <IconComponent className="w-4 h-4 mr-2" />
-                      {category.name}
-                    </Button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Agent Grid */}
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-6">
-              <p className="text-muted-foreground">
-                共 <span className="font-medium text-foreground">{filteredAgents.length}</span> 个 AI 员工
-              </p>
-            </div>
-
-            {filteredAgents.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredAgents.map((agent) => (
-                  <AgentCard key={agent.id} agent={agent} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-16">
-                <Bot className="w-16 h-16 mx-auto text-muted-foreground/50" />
-                <h3 className="mt-4 text-lg font-medium text-foreground">
-                  没有找到匹配的 AI 员工
-                </h3>
-                <p className="mt-2 text-muted-foreground">
-                  尝试调整搜索关键词或分类筛选
-                </p>
-                <Button
-                  variant="outline"
-                  className="mt-4 bg-transparent"
-                  onClick={() => {
-                    setSearchQuery("")
-                    setSelectedCategory("all")
-                  }}
-                >
-                  清除筛选
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <Footer />
-    </div>
+      )}
+    </AppLayout>
   )
 }
 
@@ -198,3 +163,4 @@ export default function MarketplacePage() {
     </Suspense>
   )
 }
+

@@ -4,8 +4,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Footer } from "@/components/footer"
-import { Check, X, Sparkles, Zap, Building2 } from "lucide-react"
+import { AppLayout } from "@/components/app-layout"
+import { Check, X, Sparkles, Zap, Building2, Flame } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const plans = [
@@ -97,24 +97,16 @@ export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly")
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <div className="bg-muted/30 border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-          <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
-            选择适合你的方案
-          </h1>
-          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            无论是个人体验还是团队协作，我们都有适合你的方案
-          </p>
-
-          {/* Billing Toggle */}
-          <div className="mt-8 inline-flex items-center p-1 bg-muted rounded-lg">
+    <AppLayout title="定价" description="无论是个人体验还是团队协作，我们都有适合你的方案">
+      <div className="space-y-12">
+        {/* Billing Toggle */}
+        <div className="flex justify-center">
+          <div className="inline-flex items-center p-1 bg-white rounded-lg border border-border shadow-sm">
             <button
               className={cn(
-                "px-4 py-2 text-sm font-medium rounded-md transition-colors",
+                "px-6 py-2.5 text-sm font-medium rounded-md transition-colors",
                 billingCycle === "monthly"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-[#FF6600] text-white shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
               onClick={() => setBillingCycle("monthly")}
@@ -123,41 +115,40 @@ export default function PricingPage() {
             </button>
             <button
               className={cn(
-                "px-4 py-2 text-sm font-medium rounded-md transition-colors",
+                "px-6 py-2.5 text-sm font-medium rounded-md transition-colors",
                 billingCycle === "yearly"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-[#FF6600] text-white shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
               onClick={() => setBillingCycle("yearly")}
             >
               年付
-              <Badge className="ml-2 bg-primary/10 text-primary border-0">省 20%</Badge>
+              <Badge className="ml-2 bg-[#FF6600]/10 text-[#FF6600] border-0">省 20%</Badge>
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Pricing Cards */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {plans.map((plan) => (
             <Card
               key={plan.id}
               className={cn(
-                "relative flex flex-col",
-                plan.popular && "border-primary shadow-lg"
+                "relative flex flex-col bg-white border-border shadow-sm hover:shadow-md transition-shadow",
+                plan.popular && "border-[#FF6600] shadow-lg ring-2 ring-[#FF6600]/20"
               )}
             >
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-primary text-primary-foreground">
-                    最受欢迎
+                  <Badge className="bg-gradient-to-r from-[#FF6600] to-[#FF8533] text-white border-0 flex items-center gap-1">
+                    <Flame className="w-3 h-3" />
+                    热门
                   </Badge>
                 </div>
               )}
               <CardHeader className="text-center pb-4">
-                <div className="w-12 h-12 mx-auto rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                  <plan.icon className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 mx-auto rounded-xl bg-[#FF6600]/10 flex items-center justify-center mb-4">
+                  <plan.icon className="w-6 h-6 text-[#FF6600]" />
                 </div>
                 <CardTitle className="text-xl">{plan.name}</CardTitle>
                 <p className="text-sm text-muted-foreground mt-2">
@@ -205,8 +196,8 @@ export default function PricingPage() {
                   className={cn(
                     "w-full",
                     plan.popular
-                      ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                      : "bg-transparent"
+                      ? "bg-gradient-to-r from-[#FF6600] to-[#FF8533] hover:shadow-md text-white"
+                      : "bg-white hover:border-[#FF6600] hover:text-[#FF6600]"
                   )}
                   variant={plan.buttonVariant}
                 >
@@ -218,7 +209,7 @@ export default function PricingPage() {
         </div>
 
         {/* Feature Comparison Table */}
-        <div className="mt-20">
+        <div className="bg-white rounded-2xl p-8 border border-border shadow-sm">
           <h2 className="text-2xl font-bold text-foreground text-center mb-8">
             功能对比
           </h2>
@@ -232,7 +223,7 @@ export default function PricingPage() {
                   <th className="text-center py-4 px-4 font-medium text-foreground">
                     免费版
                   </th>
-                  <th className="text-center py-4 px-4 font-medium text-primary">
+                  <th className="text-center py-4 px-4 font-medium text-[#FF6600]">
                     Pro 版
                   </th>
                   <th className="text-center py-4 px-4 font-medium text-foreground">
@@ -246,7 +237,7 @@ export default function PricingPage() {
                     可用 AI 员工数量
                   </td>
                   <td className="py-4 px-4 text-center">3 个</td>
-                  <td className="py-4 px-4 text-center text-primary font-medium">
+                  <td className="py-4 px-4 text-center text-[#FF6600] font-medium">
                     全部
                   </td>
                   <td className="py-4 px-4 text-center">全部</td>
@@ -254,7 +245,7 @@ export default function PricingPage() {
                 <tr className="border-b border-border">
                   <td className="py-4 px-4 text-muted-foreground">每日使用次数</td>
                   <td className="py-4 px-4 text-center">10 次</td>
-                  <td className="py-4 px-4 text-center text-primary font-medium">
+                  <td className="py-4 px-4 text-center text-[#FF6600] font-medium">
                     200 次
                   </td>
                   <td className="py-4 px-4 text-center">无限</td>
@@ -262,7 +253,7 @@ export default function PricingPage() {
                 <tr className="border-b border-border">
                   <td className="py-4 px-4 text-muted-foreground">响应速度</td>
                   <td className="py-4 px-4 text-center">标准</td>
-                  <td className="py-4 px-4 text-center text-primary font-medium">
+                  <td className="py-4 px-4 text-center text-[#FF6600] font-medium">
                     优先
                   </td>
                   <td className="py-4 px-4 text-center">最高</td>
@@ -270,7 +261,7 @@ export default function PricingPage() {
                 <tr className="border-b border-border">
                   <td className="py-4 px-4 text-muted-foreground">历史记录</td>
                   <td className="py-4 px-4 text-center">7 天</td>
-                  <td className="py-4 px-4 text-center text-primary font-medium">
+                  <td className="py-4 px-4 text-center text-[#FF6600] font-medium">
                     永久
                   </td>
                   <td className="py-4 px-4 text-center">永久</td>
@@ -305,13 +296,13 @@ export default function PricingPage() {
         </div>
 
         {/* FAQ */}
-        <div className="mt-20">
+        <div>
           <h2 className="text-2xl font-bold text-foreground text-center mb-8">
             常见问题
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {faqs.map((faq, i) => (
-              <Card key={i}>
+              <Card key={i} className="bg-white border-border shadow-sm hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <h3 className="font-semibold text-foreground mb-2">
                     {faq.question}
@@ -323,8 +314,6 @@ export default function PricingPage() {
           </div>
         </div>
       </div>
-
-      <Footer />
-    </div>
+    </AppLayout>
   )
 }
