@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { getAgentById, formatUsageCount } from "@/lib/agents-data"
 import { AgentForm } from "@/components/agent-form"
+import { AppLayout } from "@/components/app-layout"
 import {
   ArrowLeft,
   Lightbulb,
@@ -279,53 +280,51 @@ export default function AgentPage({ params }: AgentPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-muted/30 border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Link
-            href="/marketplace"
-            className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            返回智能广场
-          </Link>
-          <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-              <IconComponent className="w-8 h-8 text-primary" />
+    <AppLayout>
+      {/* Agent Header */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <Link
+          href="/marketplace"
+          className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors mb-4"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          返回智能广场
+        </Link>
+        <div className="flex items-start gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-[#FF6600]/10 flex items-center justify-center shrink-0">
+            <IconComponent className="w-8 h-8 text-[#FF6600]" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-bold text-gray-900">{agent.name}</h1>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={isFavorite ? "text-red-500" : "text-gray-400"}
+                onClick={() => setIsFavorite(!isFavorite)}
+              >
+                <Heart className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} />
+              </Button>
             </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl font-bold text-foreground">{agent.name}</h1>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={isFavorite ? "text-red-500" : "text-muted-foreground"}
-                  onClick={() => setIsFavorite(!isFavorite)}
-                >
-                  <Heart className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} />
-                </Button>
+            <p className="text-gray-600 mt-1">{agent.shortDescription}</p>
+            <div className="flex items-center gap-4 mt-3 flex-wrap">
+              <div className="flex gap-2">
+                {agent.tags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="bg-gray-100 text-gray-700 border-0">
+                    {tag}
+                  </Badge>
+                ))}
               </div>
-              <p className="text-muted-foreground mt-1">{agent.shortDescription}</p>
-              <div className="flex items-center gap-4 mt-3 flex-wrap">
-                <div className="flex gap-2">
-                  {agent.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  {formatUsageCount(agent.usageCount)} 次使用
-                </span>
-              </div>
+              <span className="text-sm text-gray-500">
+                {formatUsageCount(agent.usageCount)} 次使用
+              </span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-full">
         {/* 统一的三栏布局 */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-stretch">
           {/* Left - Form (1 column) */}
@@ -340,7 +339,7 @@ export default function AgentPage({ params }: AgentPageProps) {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-primary" />
+                    <Sparkles className="w-5 h-5 text-[#FF6600]" />
                     开始工作
                   </CardTitle>
                 </CardHeader>
@@ -349,12 +348,12 @@ export default function AgentPage({ params }: AgentPageProps) {
                     placeholder={`例如：${agent.examplePrompts[0]}`}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    className="min-h-32 resize-none"
+                    className="min-h-32 resize-none border-gray-300"
                   />
                   <Button
                     onClick={() => handleGenerate()}
                     disabled={!input.trim() || isGenerating}
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                    className="w-full bg-[#FF6600] hover:bg-[#FF8533] text-white"
                   >
                     {isGenerating ? (
                       <>
@@ -370,15 +369,15 @@ export default function AgentPage({ params }: AgentPageProps) {
                   </Button>
 
                   {/* Example Prompts */}
-                  <div className="pt-4 border-t border-border">
-                    <p className="text-sm text-muted-foreground mb-3">快捷模板：</p>
+                  <div className="pt-4 border-t border-gray-200">
+                    <p className="text-sm text-gray-600 mb-3">快捷模板：</p>
                     <div className="flex flex-wrap gap-2">
                       {agent.examplePrompts.slice(0, 3).map((prompt, i) => (
                         <Button
                           key={i}
                           variant="outline"
                           size="sm"
-                          className="text-xs h-auto py-2 px-3 whitespace-normal text-left bg-transparent"
+                          className="text-xs h-auto py-2 px-3 whitespace-normal text-left bg-transparent border-gray-300 text-gray-700 hover:bg-gray-50"
                           onClick={() => setInput(prompt)}
                         >
                           {prompt.length > 25 ? prompt.slice(0, 25) + "..." : prompt}
@@ -397,13 +396,13 @@ export default function AgentPage({ params }: AgentPageProps) {
               <Card className="h-full">
                 <CardHeader className="flex flex-row items-center justify-between pb-3">
                   <CardTitle className="text-lg">生成结果</CardTitle>
-                  <Button variant="ghost" size="sm" onClick={copyResult}>
+                  <Button variant="ghost" size="sm" onClick={copyResult} className="text-gray-600 hover:text-gray-900">
                     <Copy className="w-4 h-4 mr-2" />
                     复制
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="bg-muted/50 rounded-lg p-4 whitespace-pre-wrap text-sm leading-relaxed max-h-[600px] overflow-y-auto">
+                  <div className="bg-gray-50 rounded-lg p-4 whitespace-pre-wrap text-sm leading-relaxed max-h-[600px] overflow-y-auto text-gray-900">
                     {result}
                   </div>
                 </CardContent>
@@ -411,11 +410,11 @@ export default function AgentPage({ params }: AgentPageProps) {
             ) : (
               <Card className="h-full flex items-center justify-center min-h-[400px]">
                 <CardContent className="text-center py-12">
-                  <Sparkles className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
-                  <h3 className="text-lg font-medium text-foreground mb-2">
+                  <Sparkles className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
                     等待生成
                   </h3>
-                  <p className="text-muted-foreground text-sm">
+                  <p className="text-gray-600 text-sm">
                     填写左侧表单，点击生成按钮开始创作
                   </p>
                 </CardContent>
@@ -435,14 +434,14 @@ export default function AgentPage({ params }: AgentPageProps) {
                   {agent.capabilities.slice(0, 3).map((cap, i) => (
                     <div key={i} className="flex items-start gap-2 text-xs">
                       <Check className="w-3 h-3 text-green-500 shrink-0 mt-0.5" />
-                      <span className="text-muted-foreground">{cap}</span>
+                      <span className="text-gray-600">{cap}</span>
                     </div>
                   ))}
                 </div>
-                <div className="pt-2 border-t">
+                <div className="pt-2 border-t border-gray-200">
                   <div className="flex flex-wrap gap-1.5">
                     {agent.tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
+                      <Badge key={tag} variant="secondary" className="text-xs bg-gray-100 text-gray-700 border-0">
                         {tag}
                       </Badge>
                     ))}
@@ -455,18 +454,19 @@ export default function AgentPage({ params }: AgentPageProps) {
             <Card className="flex-1">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <Clock className="w-4 h-4 text-gray-600" />
                   历史记录
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {!user ? (
                   <div className="text-center py-6">
-                    <Clock className="w-8 h-8 mx-auto text-muted-foreground/30 mb-2" />
-                    <p className="text-xs text-muted-foreground mb-2">登录后查看历史记录</p>
+                    <Clock className="w-8 h-8 mx-auto text-gray-300 mb-2" />
+                    <p className="text-xs text-gray-600 mb-2">登录后查看历史记录</p>
                     <Button
                       size="sm"
                       variant="outline"
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
                       onClick={() => window.location.href = '/api/auth/google'}
                     >
                       立即登录
@@ -474,27 +474,27 @@ export default function AgentPage({ params }: AgentPageProps) {
                   </div>
                 ) : isLoadingHistory ? (
                   <div className="text-center py-6">
-                    <Loader2 className="w-6 h-6 mx-auto animate-spin text-muted-foreground mb-2" />
-                    <p className="text-xs text-muted-foreground">加载中...</p>
+                    <Loader2 className="w-6 h-6 mx-auto animate-spin text-gray-400 mb-2" />
+                    <p className="text-xs text-gray-600">加载中...</p>
                   </div>
                 ) : history.length > 0 ? (
                   <div className="space-y-2">
                     {history.map((item) => (
                       <div
                         key={item.id}
-                        className={`p-2.5 rounded-lg hover:bg-muted/70 cursor-pointer transition-colors border group ${
-                          selectedHistoryId === item.id ? 'border-primary bg-muted/50' : 'border-transparent'
+                        className={`p-2.5 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors border group ${
+                          selectedHistoryId === item.id ? 'border-[#FF6600] bg-gray-50' : 'border-transparent'
                         }`}
                         onClick={() => loadHistoryItem(item)}
                       >
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <p className="text-xs font-medium text-foreground line-clamp-1 flex-1">
+                          <p className="text-xs font-medium text-gray-900 line-clamp-1 flex-1">
                             {typeof item.formData === 'object' && 'niche' in item.formData
                               ? (item.formData.niche as string)
                               : '历史记录'}
                           </p>
                           <div className="flex items-center gap-1">
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            <span className="text-xs text-gray-500 whitespace-nowrap">
                               {item.time}
                             </span>
                             <Button
@@ -506,11 +506,11 @@ export default function AgentPage({ params }: AgentPageProps) {
                                 deleteHistoryItem(item.id)
                               }}
                             >
-                              <Trash2 className="w-3 h-3 text-destructive" />
+                              <Trash2 className="w-3 h-3 text-red-600" />
                             </Button>
                           </div>
                         </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2">
+                        <p className="text-xs text-gray-600 line-clamp-2">
                           {item.result.split('\n')[0]}
                         </p>
                       </div>
@@ -518,8 +518,8 @@ export default function AgentPage({ params }: AgentPageProps) {
                   </div>
                 ) : (
                   <div className="text-center py-6">
-                    <Clock className="w-8 h-8 mx-auto text-muted-foreground/30 mb-2" />
-                    <p className="text-xs text-muted-foreground">暂无历史记录</p>
+                    <Clock className="w-8 h-8 mx-auto text-gray-300 mb-2" />
+                    <p className="text-xs text-gray-600">暂无历史记录</p>
                   </div>
                 )}
               </CardContent>
@@ -527,6 +527,6 @@ export default function AgentPage({ params }: AgentPageProps) {
           </div>
         </div>
       </div>
-    </div>
+    </AppLayout>
   )
 }

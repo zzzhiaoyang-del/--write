@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Upload, AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AppLayout } from '@/components/app-layout'
 
 export default function DigitalHumanPage() {
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -89,13 +90,14 @@ export default function DigitalHumanPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 max-w-2xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">数字分身</h1>
-        <p className="text-muted-foreground">上传图片，创建您的数字人分身</p>
-      </div>
+    <AppLayout>
+      <div className="max-w-2xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2 text-gray-900">数字分身</h1>
+          <p className="text-gray-600">上传图片，创建您的数字人分身</p>
+        </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
         {/* 1. 数字人形象 */}
         <Card>
           <CardHeader>
@@ -106,15 +108,16 @@ export default function DigitalHumanPage() {
               <div className="border-2 border-dashed rounded-lg p-8 text-center">
                 {imageFile ? (
                   <div className="space-y-2">
-                    <Upload className="w-12 h-12 mx-auto text-primary" />
-                    <p className="text-sm font-medium">{imageFile.name}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <Upload className="w-12 h-12 mx-auto text-[#FF6600]" />
+                    <p className="text-sm font-medium text-gray-900">{imageFile.name}</p>
+                    <p className="text-xs text-gray-600">
                       {(imageFile.size / (1024 * 1024)).toFixed(2)} MB
                     </p>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
                       onClick={() => setImageFile(null)}
                     >
                       重新选择
@@ -122,13 +125,13 @@ export default function DigitalHumanPage() {
                   </div>
                 ) : (
                   <>
-                    <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-sm font-medium mb-2">上传图片</p>
+                    <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                    <p className="text-sm font-medium mb-2 text-gray-900">上传图片</p>
                     <Input
                       type="file"
                       accept="image/*"
                       onChange={handleImageUpload}
-                      className="max-w-xs mx-auto"
+                      className="max-w-xs mx-auto border-gray-300"
                     />
                   </>
                 )}
@@ -158,6 +161,7 @@ export default function DigitalHumanPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={50}
+              className="border-gray-300"
             />
           </CardContent>
         </Card>
@@ -186,13 +190,14 @@ export default function DigitalHumanPage() {
         {/* 提交按钮 */}
         <Button
           type="submit"
-          className="w-full"
+          className="w-full bg-[#FF6600] hover:bg-[#FF8533] text-white"
           size="lg"
           disabled={uploading || !imageFile || !name || !category}
         >
           {uploading ? progress : '提交'}
         </Button>
       </form>
-    </div>
+      </div>
+    </AppLayout>
   )
 }

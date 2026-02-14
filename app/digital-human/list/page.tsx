@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Video, Plus, Loader2, Sparkles, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { AppLayout } from '@/components/app-layout'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -137,21 +138,23 @@ export default function DigitalHumanListPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        </div>
+      </AppLayout>
     )
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <AppLayout>
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2">数字人资产</h1>
-          <p className="text-muted-foreground">管理您的数字人分身</p>
+          <h1 className="text-3xl font-bold mb-2 text-gray-900">数字人资产</h1>
+          <p className="text-gray-600">管理您的数字人分身</p>
         </div>
         <Link href="/digital-human">
-          <Button>
+          <Button className="bg-[#FF6600] hover:bg-[#FF8533] text-white">
             <Plus className="w-4 h-4 mr-2" />
             创建数字人
           </Button>
@@ -161,13 +164,13 @@ export default function DigitalHumanListPage() {
       {humans.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <Video className="w-16 h-16 text-muted-foreground mb-4" />
-            <p className="text-lg font-medium mb-2">还没有数字人</p>
-            <p className="text-sm text-muted-foreground mb-4">
+            <Video className="w-16 h-16 text-gray-400 mb-4" />
+            <p className="text-lg font-medium mb-2 text-gray-900">还没有数字人</p>
+            <p className="text-sm text-gray-600 mb-4">
               创建您的第一个数字人分身
             </p>
             <Link href="/digital-human">
-              <Button>
+              <Button className="bg-[#FF6600] hover:bg-[#FF8533] text-white">
                 <Plus className="w-4 h-4 mr-2" />
                 立即创建
               </Button>
@@ -182,7 +185,7 @@ export default function DigitalHumanListPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-lg mb-2">{human.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-gray-600">
                       {human.category}
                     </p>
                   </div>
@@ -202,10 +205,10 @@ export default function DigitalHumanListPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs text-gray-600">
                     创建时间: {new Date(human.created_at).toLocaleDateString('zh-CN')}
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs text-gray-600">
                     ID: {human.avatar_id}
                   </div>
 
@@ -242,7 +245,7 @@ export default function DigitalHumanListPage() {
                   {human.status === 'processing' && (
                     <div className="flex items-center justify-center py-4">
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      <span className="text-sm text-muted-foreground">处理中...</span>
+                      <span className="text-sm text-gray-600">处理中...</span>
                     </div>
                   )}
                 </div>
@@ -280,6 +283,6 @@ export default function DigitalHumanListPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </AppLayout>
   )
 }

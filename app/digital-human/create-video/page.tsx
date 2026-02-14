@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Loader2, Play, Download, Eye, Settings, ArrowLeft, Sparkles, Video } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { AppLayout } from '@/components/app-layout'
 
 interface VideoWork {
   id: string
@@ -197,18 +198,18 @@ function CreateVideoContent() {
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <AppLayout>
       {/* 顶部导航 */}
       <div className="flex items-center mb-8">
         <Link href="/digital-human/list">
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
             <ArrowLeft className="w-4 h-4 mr-2" />
             返回
           </Button>
         </Link>
         <div className="ml-4">
-          <h1 className="text-3xl font-bold">创作作品</h1>
-          <p className="text-muted-foreground">使用数字人 {avatarName || avatarId} 创作视频</p>
+          <h1 className="text-3xl font-bold text-gray-900">创作作品</h1>
+          <p className="text-gray-600">使用数字人 {avatarName || avatarId} 创作视频</p>
         </div>
       </div>
 
@@ -225,8 +226,8 @@ function CreateVideoContent() {
             </CardHeader>
             <CardContent>
               {isLoadingAvatar ? (
-                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                <div className="aspect-video bg-gray-50 rounded-lg flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-gray-600" />
                 </div>
               ) : avatarInfo && avatarInfo.video_url ? (
                 <div className="space-y-2">
@@ -241,18 +242,18 @@ function CreateVideoContent() {
                     </video>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{avatarInfo.name}</span>
+                    <span className="text-gray-600">{avatarInfo.name}</span>
                     <Badge variant={avatarInfo.status === 'completed' ? 'default' : 'secondary'}>
                       {avatarInfo.status === 'completed' ? '已完成' : avatarInfo.status}
                     </Badge>
                   </div>
                 </div>
               ) : (
-                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+                <div className="aspect-video bg-gray-50 rounded-lg flex items-center justify-center">
                   <div className="text-center">
-                    <Video className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">数字人形象预览</p>
-                    <p className="text-xs text-muted-foreground mt-1">ID: {avatarId}</p>
+                    <Video className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+                    <p className="text-sm text-gray-600">数字人形象预览</p>
+                    <p className="text-xs text-gray-600 mt-1">ID: {avatarId}</p>
                   </div>
                 </div>
               )}
@@ -276,10 +277,10 @@ function CreateVideoContent() {
                   className="mt-2"
                 />
                 <div className="flex justify-between items-center mt-2">
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-gray-600">
                     预计时长: {Math.ceil(text.length / 4)}秒
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-gray-600">
                     {text.length} / 5000 字
                   </p>
                 </div>
@@ -408,8 +409,8 @@ function CreateVideoContent() {
                 </div>
               ) : works.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-sm text-muted-foreground">还没有作品</p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-sm text-gray-600">还没有作品</p>
+                  <p className="text-xs text-gray-600 mt-1">
                     创建您的第一个视频作品
                   </p>
                 </div>
@@ -425,7 +426,7 @@ function CreateVideoContent() {
                           <p className="font-medium text-sm line-clamp-1">
                             {work.name || '未命名'}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-gray-600 mt-1">
                             {new Date(work.created_at).toLocaleString('zh-CN')}
                           </p>
                         </div>
@@ -433,7 +434,7 @@ function CreateVideoContent() {
                       </div>
 
                       {work.text && (
-                        <p className="text-xs text-muted-foreground line-clamp-2">
+                        <p className="text-xs text-gray-600 line-clamp-2">
                           {work.text}
                         </p>
                       )}
@@ -484,7 +485,7 @@ function CreateVideoContent() {
                       {work.status === 'processing' && (
                         <div className="flex items-center justify-center py-2">
                           <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-gray-600">
                             生成中...
                           </span>
                         </div>
@@ -497,7 +498,7 @@ function CreateVideoContent() {
           </Card>
         </div>
       </div>
-    </div>
+    </AppLayout>
   )
 }
 

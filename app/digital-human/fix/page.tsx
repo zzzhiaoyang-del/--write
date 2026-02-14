@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle2, Loader2 } from 'lucide-react'
+import { AppLayout } from '@/components/app-layout'
 
 export default function FixDigitalHumanPage() {
   const [loading, setLoading] = useState(false)
@@ -41,24 +42,24 @@ export default function FixDigitalHumanPage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
+    <AppLayout>
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>修复数字人状态</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-gray-900">修复数字人状态</CardTitle>
+          <CardDescription className="text-gray-600">
             将所有"处理中"的数字人状态更新为"已完成"
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {!result && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-600">
                 如果你的数字人一直显示"处理中"状态，点击下面的按钮可以批量修复。
               </p>
               <Button
                 onClick={handleFix}
                 disabled={loading}
-                className="w-full"
+                className="w-full bg-[#FF6600] hover:bg-[#FF8533] text-white"
                 size="lg"
               >
                 {loading ? (
@@ -92,6 +93,6 @@ export default function FixDigitalHumanPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </AppLayout>
   )
 }
