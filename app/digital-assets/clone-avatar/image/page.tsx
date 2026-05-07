@@ -1,12 +1,19 @@
 'use client'
 
 import { useState } from 'react'
+import { createClient } from '@supabase/supabase-js'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Upload, AlertCircle, ArrowLeft } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useRouter } from 'next/navigation'
+
+// 浏览器端直传 Supabase（绕过 Vercel 4.5MB 限制）
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export default function ImageAvatarPage() {
   const router = useRouter()
@@ -51,20 +58,20 @@ export default function ImageAvatarPage() {
     setProgress('正在上传图片...')
 
     try {
-      // 1. 上传图片到服务器/云存储
-      const formData = new FormData()
-      formData.append('image', imageFile)
-      formData.append('name', name)
-      formData.append('model', model)
+      // 1. 直接从浏览器上传到 Supabase Storage（绕过 Vercel 4.5MB 限制）
+      const fileExt = imageFile.name.split('.').pop()
+      const fileName = `images/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
 
-      const uploadResponse = await fetch('/api/digital-human/upload-image', {
-        method: 'POST',
-        body: formData,
-      })
+      const { error: uploadError } = await supabase.storage
+        .from('digital-human-videos')
+        .upload(fileName, imageFile, { contentType: imageFile.type, upsert: false })
 
-      if (!uploadResponse.ok) throw new Error('图片上传失败')
+      if (uploadError) throw new Error('图片上传失败：' + uploadError.message)
 
-      const { imageUrl } = await uploadResponse.json()
+      const { data: { publicUrl: imageUrl } } = supabase.storage
+        .from('digital-human-videos')
+        .getPublicUrl(fileName)
+
       setProgress('图片上传成功，正在创建数字人...')
 
       // 2. 调用数字人克隆API

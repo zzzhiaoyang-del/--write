@@ -1,6 +1,415 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, useRef, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { createClient } from '@supabase/supabase-js'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2, Play, Download, Eye, ArrowLeft, Sparkles, Video, Upload, CheckCircle2, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
+import { toast } from 'sonner'
+import { AppLayout } from '@/components/app-layout'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+interface VideoWork {
+  id: string
+  name: string
+  text: string
+  voice: string
+  status: 'processing' | 'completed' | 'failed'
+  created_at: string
+  video_url?: string
+  duration?: number
+}
+
+type GenStatus = 'idle' | 'uploading' | 'generating' | 'polling' | 'succeeded' | 'failed'
+
+function CreateVideoContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const avatarId = searchParams.get('avatarId')
+  const avatarName = searchParams.get('name')
+
+  const [audioFile, setAudioFile] = useState<File | null>(null)
+  const [genStatus, setGenStatus] = useState<GenStatus>('idle')
+  const [resultVideoUrl, setResultVideoUrl] = useState<string | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [works, setWorks] = useState<VideoWork[]>([])
+  const [isLoadingWorks, setIsLoadingWorks] = useState(true)
+  const [avatarInfo, setAvatarInfo] = useState<any>(null)
+  const [isLoadingAvatar, setIsLoadingAvatar] = useState(true)
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    if (!avatarId) {
+      toast.error('缺少数字人ID')
+      router.push('/digital-human/list')
+      return
+    }
+    fetchAvatarInfo()
+    fetchWorks()
+    return () => { if (pollingRef.current) clearInterval(pollingRef.current) }
+  }, [avatarId])
+
+  const fetchAvatarInfo = async () => {
+    try {
+      setIsLoadingAvatar(true)
+      const response = await fetch('/api/digital-human/list')
+      const data = await response.json()
+      const avatar = data.humans?.find((h: any) => h.avatar_id === avatarId)
+      setAvatarInfo(avatar)
+    } catch (error) {
+      console.error('Error fetching avatar info:', error)
+    } finally {
+      setIsLoadingAvatar(false)
+    }
+  }
+
+  const fetchWorks = async () => {
+    try {
+      setIsLoadingWorks(true)
+      const response = await fetch(`/api/digital-human/video-works?avatarId=${avatarId}`)
+      const data = await response.json()
+      setWorks(data.works || [])
+    } catch (error) {
+      console.error('Error fetching works:', error)
+    } finally {
+      setIsLoadingWorks(false)
+    }
+  }
+
+  const handleAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 50 * 1024 * 1024) {
+      setErrorMsg('音频大小不能超过 50MB')
+      return
+    }
+    setErrorMsg(null)
+    setAudioFile(file)
+  }
+
+  const startPolling = (predictionId: string) => {
+    setGenStatus('polling')
+    let attempts = 0
+    pollingRef.current = setInterval(async () => {
+      attempts++
+      if (attempts > 120) {
+        clearInterval(pollingRef.current!)
+        setGenStatus('failed')
+        setErrorMsg('生成超时，请重试')
+        return
+      }
+      try {
+        const res = await fetch(`/api/sadtalker/status?id=${predictionId}`)
+        const data = await res.json()
+        if (data.status === 'succeeded') {
+          clearInterval(pollingRef.current!)
+          const url = Array.isArray(data.output) ? data.output[0] : data.output
+          setResultVideoUrl(url)
+          setGenStatus('succeeded')
+          toast.success('视频生成成功！')
+          fetchWorks()
+        } else if (data.status === 'failed' || data.status === 'canceled') {
+          clearInterval(pollingRef.current!)
+          setGenStatus('failed')
+          setErrorMsg(data.error || '生成失败，请重试')
+        }
+      } catch { /* 网络抖动，继续轮询 */ }
+    }, 5000)
+  }
+
+  const handleSubmit = async () => {
+    if (!audioFile) {
+      toast.error('请先上传音频文件')
+      return
+    }
+    if (!avatarInfo?.video_url) {
+      toast.error('数字人图片不存在，无法生成')
+      return
+    }
+
+    setErrorMsg(null)
+    setResultVideoUrl(null)
+    setGenStatus('uploading')
+
+    try {
+      // 1. 上传音频到 Supabase
+      const ext = audioFile.name.split('.').pop()
+      const fileName = `sadtalker-audio/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from('digital-human-videos')
+        .upload(fileName, audioFile, { upsert: false })
+      if (uploadError) throw new Error('音频上传失败：' + uploadError.message)
+
+      const { data: { publicUrl: audioUrl } } = supabase.storage
+        .from('digital-human-videos')
+        .getPublicUrl(fileName)
+
+      // 2. 提交 SadTalker 生成任务
+      setGenStatus('generating')
+      const res = await fetch('/api/sadtalker/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: avatarInfo.video_url, // 存的是图片 URL
+          audioUrl,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || '提交任务失败')
+
+      // 3. 开始轮询
+      startPolling(data.predictionId)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '发生未知错误'
+      setErrorMsg(msg)
+      setGenStatus('failed')
+    }
+  }
+
+  const isLoading = ['uploading', 'generating', 'polling'].includes(genStatus)
+
+  const statusLabel: Record<GenStatus, string> = {
+    idle: '',
+    uploading: '正在上传音频...',
+    generating: '正在提交生成任务...',
+    polling: '视频生成中，请稍候（约 2-5 分钟）...',
+    succeeded: '视频生成成功！',
+    failed: '',
+  }
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      processing: { label: '生成中', variant: 'secondary' as const },
+      completed: { label: '已完成', variant: 'default' as const },
+      failed: { label: '失败', variant: 'destructive' as const },
+    }
+    const config = statusConfig[status as keyof typeof statusConfig]
+    return <Badge variant={config?.variant ?? 'secondary'}>{config?.label ?? status}</Badge>
+  }
+
+  return (
+    <AppLayout>
+      <div className="flex items-center mb-8">
+        <Link href="/digital-human/list">
+          <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            返回
+          </Button>
+        </Link>
+        <div className="ml-4">
+          <h1 className="text-3xl font-bold text-gray-900">创作作品</h1>
+          <p className="text-gray-600">使用数字人 {avatarName || avatarId} 创作视频</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* 左侧：创作区域 */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* 数字人预览 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Sparkles className="w-5 h-5 mr-2" />
+                数字人预览
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingAvatar ? (
+                <div className="aspect-video bg-gray-50 rounded-lg flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                </div>
+              ) : avatarInfo?.video_url ? (
+                <div className="space-y-2">
+                  <img
+                    src={avatarInfo.video_url}
+                    alt={avatarInfo.name}
+                    className="w-full max-h-72 object-contain rounded-lg bg-black"
+                  />
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">{avatarInfo.name}</span>
+                    <Badge variant="default">已完成</Badge>
+                  </div>
+                </div>
+              ) : (
+                <div className="aspect-video bg-gray-50 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <Video className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <p className="text-sm text-gray-500">数字人形象预览</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 音频上传 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>上传驱动音频</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Label>音频文件（MP3 / WAV / M4A，≤50MB）</Label>
+              <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-lg cursor-pointer transition-colors
+                ${audioFile ? 'border-green-400 bg-green-50' : 'border-gray-300 hover:border-primary/50 hover:bg-gray-50'}
+                ${isLoading ? 'pointer-events-none opacity-60' : ''}`}>
+                {audioFile ? (
+                  <div className="flex flex-col items-center gap-1">
+                    <CheckCircle2 className="w-6 h-6 text-green-500" />
+                    <span className="text-sm text-green-600 font-medium">{audioFile.name}</span>
+                    <span className="text-xs text-gray-400">{(audioFile.size / 1024 / 1024).toFixed(2)} MB</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-gray-400">
+                    <Upload className="w-7 h-7" />
+                    <span className="text-sm">点击上传音频</span>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="audio/*,.mp3,.wav,.m4a,.ogg"
+                  className="hidden"
+                  onChange={handleAudioChange}
+                  disabled={isLoading}
+                />
+              </label>
+
+              {errorMsg && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{errorMsg}</AlertDescription>
+                </Alert>
+              )}
+
+              {isLoading && (
+                <Alert>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <AlertDescription>{statusLabel[genStatus]}</AlertDescription>
+                </Alert>
+              )}
+
+              {genStatus === 'succeeded' && (
+                <Alert className="border-green-400 bg-green-50">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-700">视频生成成功！</AlertDescription>
+                </Alert>
+              )}
+
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={handleSubmit}
+                disabled={isLoading || !audioFile}
+              >
+                {isLoading ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />生成中...</>
+                ) : (
+                  <><Sparkles className="w-4 h-4 mr-2" />提交生成</>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* 生成结果 */}
+          {resultVideoUrl && (
+            <Card>
+              <CardHeader><CardTitle>生成结果</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <video src={resultVideoUrl} controls autoPlay className="w-full rounded-lg" />
+                <a
+                  href={resultVideoUrl}
+                  download="sadtalker-output.mp4"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-center text-sm text-primary underline"
+                >
+                  下载视频
+                </a>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* 右侧：历史作品 */}
+        <div className="lg:col-span-1">
+          <Card className="h-full flex flex-col">
+            <CardHeader><CardTitle>最新作品</CardTitle></CardHeader>
+            <CardContent className="flex-1 flex flex-col">
+              {isLoadingWorks ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                </div>
+              ) : works.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-500">还没有作品</p>
+                </div>
+              ) : (
+                <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                  {works.map((work) => (
+                    <div key={work.id} className="border rounded-lg p-3 space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-sm line-clamp-1">{work.name || '未命名'}</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(work.created_at).toLocaleString('zh-CN')}
+                          </p>
+                        </div>
+                        {getStatusBadge(work.status)}
+                      </div>
+                      {work.status === 'completed' && work.video_url && (
+                        <div className="space-y-2">
+                          <video src={work.video_url} controls className="w-full rounded" />
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" className="flex-1" asChild>
+                              <a href={work.video_url} target="_blank" rel="noopener noreferrer">
+                                <Eye className="w-3 h-3 mr-1" />查看
+                              </a>
+                            </Button>
+                            <Button variant="outline" size="sm" className="flex-1" asChild>
+                              <a href={work.video_url} download>
+                                <Download className="w-3 h-3 mr-1" />下载
+                              </a>
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      {work.status === 'processing' && (
+                        <div className="flex items-center justify-center py-2">
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          <span className="text-xs text-gray-500">生成中...</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </AppLayout>
+  )
+}
+
+export default function CreateVideoPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto py-8 flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    }>
+      <CreateVideoContent />
+    </Suspense>
+  )
+}
+
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
