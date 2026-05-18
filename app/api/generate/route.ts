@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const DEEPSEEK_API_KEY = 'sk-c20f2c723cfb4395b896442fc46ff0e2'
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || ''
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions'
 
 // 系统提示词配置
@@ -1769,7 +1769,7 @@ const DOUYIN_ACCOUNT_ANALYZER_PROMPT = `# 角色 (Role): 抖音实战拆解专�
 // 格式化抖音博主账号拆解的表单数据 - 云端兼容版本
 async function formatDouyinAccountAnalyzerPrompt(formData: Record<string, string | string[]>): Promise<string> {
   const url = formData.url as string
-  const JINA_API_KEY = process.env.JINA_API_KEY || 'jina_68c99415c6544f03bfa1f1bb34c0f9cfV8Vcit_rctuXAc5FUeI08UDH7qZF'
+  const JINA_API_KEY = process.env.JINA_API_KEY || ''
 
   try {
     // 步骤1: 使用 Jina Reader 抓取内容
@@ -2342,6 +2342,13 @@ function formatTeleprompterPrompt(formData: Record<string, string | string[]>): 
 }
 
 export async function POST(request: NextRequest) {
+  if (!DEEPSEEK_API_KEY) {
+    return NextResponse.json(
+      { error: 'DEEPSEEK_API_KEY 未配置，请在环境变量中设置' },
+      { status: 500 }
+    )
+  }
+
   try {
     const body = await request.json()
     const { formData, agentId } = body

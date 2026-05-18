@@ -26,3 +26,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts.env
 PRIVATE-KEYS.md
+
+# test scripts
+test-api.js
